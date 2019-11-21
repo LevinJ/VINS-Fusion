@@ -1,0 +1,3 @@
+evo_rpe euroc /home/levin/workspace/data/euroc/config/MH_01_easy/data.csv ./vio.csv  -va -d 1 -u 'm' --plot --plot_mode xz  --save_results results/mh_01_easy.zip
+
+evo_ape euroc /home/levin/workspace/data/euroc/config/MH_01_easy/data.csv ./vio.csv  -va --plot --plot_mode xz  --save_results results/mh_01_easy.zip
