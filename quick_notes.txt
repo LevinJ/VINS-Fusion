@@ -1,3 +1,7 @@
 evo_rpe euroc /home/levin/workspace/data/euroc/config/MH_01_easy/data.csv ./vio.csv  -va -d 1 -u 'm' --plot --plot_mode xz  --save_results results/mh_01_easy.zip
 
 evo_ape euroc /home/levin/workspace/data/euroc/config/MH_01_easy/data.csv ./vio.csv  -va --plot --plot_mode xz  --save_results results/mh_01_easy.zip
+
+rosrun loop_fusion loop_fusion_node ~/workspace/ros_projects/src/VINS-Fusion/config/vid/vid_mono_imu_config.yaml
+
+rosrun vins vins_node ~/workspace/ros_projects/src/VINS-Fusion/config/vid/vid_mono_imu_config.yaml
