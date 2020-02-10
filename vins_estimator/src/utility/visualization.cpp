@@ -183,8 +183,10 @@ void pubOdometry(const Estimator &estimator, const std_msgs::Header &header)
 
         foutC.close();
         Eigen::Vector3d tmp_T = estimator.Ps[WINDOW_SIZE];
-        printf("time: %f, t: %f %f %f q: %f %f %f %f \n", header.stamp.toSec(), tmp_T.x(), tmp_T.y(), tmp_T.z(),
-                                                          tmp_Q.w(), tmp_Q.x(), tmp_Q.y(), tmp_Q.z());
+        Eigen::Matrix3d Rwb(tmp_Q);
+        Eigen::Vector3d ypr = Utility::R2ypr(Rwb);
+        printf("time: %f, t: %f %f %f, vxyz: %f %f %f, ypr: %f %f %f \n", header.stamp.toSec(), tmp_T.x(), tmp_T.y(), tmp_T.z(),
+        		odometry.twist.twist.linear.x, odometry.twist.twist.linear.y, odometry.twist.twist.linear.z, ypr[0],ypr[1],ypr[2]);
     }
 }
 
