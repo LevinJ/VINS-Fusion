@@ -10,6 +10,7 @@
  *******************************************************/
 
 #include "initial_sfm.h"
+#include "../utility/visualization.h"
 
 GlobalSFM::GlobalSFM(){}
 
@@ -282,6 +283,7 @@ bool GlobalSFM::construct(int frame_num, Quaterniond* q, Vector3d* T, int l,
 		}
 
 	}
+	TicToc t_solver;
 	ceres::Solver::Options options;
 	options.linear_solver_type = ceres::DENSE_SCHUR;
 	//options.minimizer_progress_to_stdout = true;
@@ -289,13 +291,15 @@ bool GlobalSFM::construct(int frame_num, Quaterniond* q, Vector3d* T, int l,
 	ceres::Solver::Summary summary;
 	ceres::Solve(options, &problem, &summary);
 	//std::cout << summary.BriefReport() << "\n";
+	ROS_DEBUG("Iterations : %d, costs=%f, %s", static_cast<int>(summary.iterations.size()),
+	    		t_solver.toc(),summary.BriefReport().c_str());
 	if (summary.termination_type == ceres::CONVERGENCE || summary.final_cost < 5e-03)
 	{
-		//cout << "vision only BA converge" << endl;
+		cout << "vision only BA converge" << endl;
 	}
 	else
 	{
-		//cout << "vision only BA not converge " << endl;
+		cout << "vision only BA not converge " << endl;
 		return false;
 	}
 	for (int i = 0; i < frame_num; i++)

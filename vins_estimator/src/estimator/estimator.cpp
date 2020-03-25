@@ -1133,9 +1133,10 @@ void Estimator::optimization()
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
     //cout << summary.BriefReport() << endl;
-    ROS_DEBUG("Iterations : %d / %d, costs=%f", static_cast<int>(summary.iterations.size()), NUM_ITERATIONS, t_solver.toc());
+    ROS_DEBUG("Iterations : %d / %d, costs=%f, %s", static_cast<int>(summary.iterations.size()),
+    		NUM_ITERATIONS, t_solver.toc(),summary.BriefReport().c_str());
 //    std::string tempstr = summary.BriefReport();
-    ROS_DEBUG("%s",  summary.BriefReport().c_str());
+//    ROS_DEBUG("%s",  summary.BriefReport().c_str());
     //printf("solver costs: %f \n", t_solver.toc());
 
     double2vector();
