@@ -9,6 +9,7 @@
 
 #include "estimator.h"
 #include "../utility/visualization.h"
+#include <iomanip>
 
 Estimator::Estimator(): f_manager{Rs}
 {
@@ -238,6 +239,7 @@ bool Estimator::getIMUInterval(double t0, double t1, vector<pair<double, Eigen::
     {
         while (accBuf.front().first <= t0)
         {
+        	printf("discard imu=%f\n", accBuf.front().first);
             accBuf.pop();
             gyrBuf.pop();
         }
@@ -292,8 +294,12 @@ void Estimator::processMeasurements()
                 }
             }
             mBuf.lock();
-            if(USE_IMU)
-                getIMUInterval(prevTime, curTime, accVector, gyrVector);
+            if(USE_IMU){
+            	getIMUInterval(prevTime, curTime, accVector, gyrVector);
+            	cout.setf(ios::fixed);
+            	std::cout<<"imu size= "<<setprecision(6) << accVector.size()<<",s="<<accVector[0].first<<",e="<<accVector[accVector.size()-1].first<<std::endl;
+            }
+
 
             featureBuf.pop();
             mBuf.unlock();
@@ -1119,15 +1125,17 @@ void Estimator::optimization()
     //options.use_explicit_schur_complement = true;
     //options.minimizer_progress_to_stdout = true;
     //options.use_nonmonotonic_steps = true;
-    if (marginalization_flag == MARGIN_OLD)
-        options.max_solver_time_in_seconds = SOLVER_TIME * 4.0 / 5.0;
-    else
-        options.max_solver_time_in_seconds = SOLVER_TIME;
+//    if (marginalization_flag == MARGIN_OLD)
+//        options.max_solver_time_in_seconds = SOLVER_TIME * 4.0 / 5.0;
+//    else
+//        options.max_solver_time_in_seconds = SOLVER_TIME;
     TicToc t_solver;
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
     //cout << summary.BriefReport() << endl;
-    ROS_DEBUG("Iterations : %d", static_cast<int>(summary.iterations.size()));
+    ROS_DEBUG("Iterations : %d / %d, costs=%f", static_cast<int>(summary.iterations.size()), NUM_ITERATIONS, t_solver.toc());
+//    std::string tempstr = summary.BriefReport();
+    ROS_DEBUG("%s",  summary.BriefReport().c_str());
     //printf("solver costs: %f \n", t_solver.toc());
 
     double2vector();
