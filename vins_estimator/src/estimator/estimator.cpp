@@ -416,7 +416,7 @@ void Estimator::processIMU(double t, double dt, const Vector3d &linear_accelerat
 
 void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, const double header)
 {
-    ROS_DEBUG("new image coming ------------------------------------------");
+    ROS_DEBUG("new image coming, %f ------------------------------------------", header);
     ROS_DEBUG("Adding feature points %lu", image.size());
     if (f_manager.addFeatureCheckParallax(frame_count, image, td))
     {
