@@ -1006,7 +1006,76 @@ bool Estimator::failureDetection()
     }
     return false;
 }
+typedef Eigen::Matrix<double, Eigen::Dynamic, 1> VecX;
+static double compute_residuals(ceres::CostFunction* cost_function , ceres::LossFunction* loss_function,  double const *const *parameters){
 
+
+	double *residuals = new double[cost_function->num_residuals()];
+
+	cost_function->Evaluate(parameters, residuals, NULL);
+
+	const int resisual_num = cost_function->num_residuals();
+
+	VecX residuals_vec(VecX::Zero(resisual_num));
+
+	for(int i=0; i<resisual_num;i++ ){
+		residuals_vec(i, 0) =residuals[i];
+	}
+
+	delete [] residuals;
+	double residual = residuals_vec.transpose() * residuals_vec;
+
+	if(loss_function){
+		double out[3];
+		loss_function->Evaluate(residual, out);
+		residual = out[0];
+	}
+	return residual * 0.5;
+
+}
+
+static double compute_residuals(ceres::CostFunction* cost_function,
+								ceres::LossFunction* loss_function,
+                                   double* x0, double* x1, double* x2,
+                                   double* x3){
+	double *parameters[4];
+	parameters[0] = x0;
+	parameters[1] = x1;
+	parameters[2] = x2;
+	parameters[3] = x3;
+	return compute_residuals(cost_function , loss_function,  parameters);
+}
+static double compute_residuals(ceres::CostFunction* cost_function,
+								ceres::LossFunction* loss_function,
+                                   double* x0, double* x1, double* x2,
+                                   double* x3, double* x4){
+	double *parameters[5];
+	parameters[0] = x0;
+	parameters[1] = x1;
+	parameters[2] = x2;
+	parameters[3] = x3;
+	parameters[4] = x4;
+	return compute_residuals(cost_function , loss_function,  parameters);
+}
+static double get_median(vector<double> v)
+{
+    size_t n = v.size() / 2;
+    nth_element(v.begin(), v.begin()+n, v.end());
+    return v[n];
+}
+static string print_str(std::vector<double> const &a) {
+
+	std::stringstream ss;
+	ss<<a.size()<<",";
+	ss<<",max="<<*max_element(a.begin(), a.end());
+	ss<<",median="<<get_median(a);
+	ss << "[";
+	for (int i = 0; i < a.size(); i++) {
+		ss << a.at(i) << ',';
+	}
+	ss << "]";
+	return ss.str();
+}
 void Estimator::optimization()
 {
     TicToc t_whole, t_prepare;
@@ -1050,13 +1119,17 @@ void Estimator::optimization()
 
     if (last_marginalization_info && last_marginalization_info->valid)
     {
+    	double residual_sum = 0;
         // construct new marginlization_factor
         MarginalizationFactor *marginalization_factor = new MarginalizationFactor(last_marginalization_info);
         problem.AddResidualBlock(marginalization_factor, NULL,
                                  last_marginalization_parameter_blocks);
+        residual_sum = compute_residuals(marginalization_factor, NULL, last_marginalization_parameter_blocks.data());
+        cout<<"margin_sum="<<residual_sum<<std::endl;
     }
     if(USE_IMU)
     {
+    	vector<double> residual_sum;
         for (int i = 0; i < frame_count; i++)
         {
             int j = i + 1;
@@ -1064,11 +1137,14 @@ void Estimator::optimization()
                 continue;
             IMUFactor* imu_factor = new IMUFactor(pre_integrations[j]);
             problem.AddResidualBlock(imu_factor, NULL, para_Pose[i], para_SpeedBias[i], para_Pose[j], para_SpeedBias[j]);
+            residual_sum.push_back(compute_residuals(imu_factor, NULL, para_Pose[i], para_SpeedBias[i], para_Pose[j], para_SpeedBias[j]));
         }
+        cout<<"imu_sum="<<std::accumulate(residual_sum.begin(), residual_sum.end(), 0.0)<<",list="<<print_str(residual_sum)<<endl;
     }
 
     int f_m_cnt = 0;
     int feature_index = -1;
+    vector<double> residual_sum;
     for (auto &it_per_id : f_manager.feature)
     {
         it_per_id.used_num = it_per_id.feature_per_frame.size();
@@ -1086,10 +1162,12 @@ void Estimator::optimization()
             imu_j++;
             if (imu_i != imu_j)
             {
+            	f_m_cnt++;
                 Vector3d pts_j = it_per_frame.point;
                 ProjectionTwoFrameOneCamFactor *f_td = new ProjectionTwoFrameOneCamFactor(pts_i, pts_j, it_per_id.feature_per_frame[0].velocity, it_per_frame.velocity,
                                                                  it_per_id.feature_per_frame[0].cur_td, it_per_frame.cur_td);
                 problem.AddResidualBlock(f_td, loss_function, para_Pose[imu_i], para_Pose[imu_j], para_Ex_Pose[0], para_Feature[feature_index], para_Td[0]);
+                residual_sum.push_back(compute_residuals(f_td, loss_function, para_Pose[imu_i], para_Pose[imu_j], para_Ex_Pose[0], para_Feature[feature_index], para_Td[0]));
             }
 
             if(STEREO && it_per_frame.is_stereo)
@@ -1109,10 +1187,10 @@ void Estimator::optimization()
                 }
                
             }
-            f_m_cnt++;
+
         }
     }
-
+    cout<<"vison_sum="<<std::accumulate(residual_sum.begin(), residual_sum.end(), 0.0)<<",list="<<print_str(residual_sum)<<endl;
     ROS_DEBUG("visual measurement count: %d", f_m_cnt);
     //printf("prepare for ceres: %f \n", t_prepare.toc());
 
