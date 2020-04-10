@@ -194,7 +194,17 @@ void PoseGraph::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
 //              << Q.y() << ","
 //              << Q.z() << ","
 //              << endl;
-
+//        loop_path_file << cur_kf->time_stamp << " ";
+//        		loop_path_file.precision(7);
+//        		loop_path_file  << P.x() << " "
+//        			  << P.y() << " "
+//        			  << P.z() << " "
+//        			  << Q.x() << " "
+//        			  << Q.y() << " "
+//        			  << Q.z() << " "
+//        			  << Q.w()<< endl;
+//
+//                loop_path_file.close();
         //TUM format
         loop_path_file.precision(6);
 		loop_path_file << cur_kf->time_stamp << " ";
