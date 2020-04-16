@@ -986,7 +986,7 @@ void PoseGraph::savePoseGraph()
     }
     fclose(pFile);
 
-    CloudPointMap cpm;
+    CloudPointMap cpm(POSE_GRAPH_SAVE_PATH);
     cpm.saveMap(keyframelist);
 
     printf("save pose graph time: %f s\n", tmp_t.toc() / 1000);

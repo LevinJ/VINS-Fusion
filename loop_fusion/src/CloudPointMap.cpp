@@ -9,32 +9,13 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 
-#define PCL_NO_PRECOMPILE
-//#include <pcl/memory.h>
-#include <pcl/pcl_macros.h>
-#include <pcl/point_types.h>
-#include <pcl/point_cloud.h>
-#include <pcl/io/pcd_io.h>
-#include "parameters.h"
-
-struct VSlamPoint
-{
-  PCL_ADD_POINT4D;                  // preferred way of adding a XYZ+padding
-  uint32_t id;
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW     // make sure our new allocators are aligned
-};
-
-POINT_CLOUD_REGISTER_POINT_STRUCT (VSlamPoint,           // here we assume a XYZ + "test" (as fields)
-                                   (float, x, x)
-                                   (float, y, y)
-                                   (float, z, z)
-                                   (uint32_t, id, id)
-)
+using namespace std;
 
 
-CloudPointMap::CloudPointMap() {
+CloudPointMap::CloudPointMap(std::string pose_graph_path): mpose_graph_path(pose_graph_path) {
 	// TODO Auto-generated constructor stub
-
+	mcloud.reset(new  pcl::PointCloud<VSlamPoint>());
+	mcloudxyz.reset(new  pcl::PointCloud<pcl::PointXYZ>());
 }
 void CloudPointMap::saveMap(std::list<KeyFrame*> &keyframelist){
 	pcl::PointCloud<VSlamPoint> cloud;
@@ -62,8 +43,27 @@ void CloudPointMap::saveMap(std::list<KeyFrame*> &keyframelist){
 		 }
 	 }
 
-	 pcl::io::savePCDFileASCII (POSE_GRAPH_SAVE_PATH + "vlsam_pcd.pcd", cloud);
-	 std::cerr << "Saved " << cloud.points.size () << " data points to " << POSE_GRAPH_SAVE_PATH + "vlsam_pcd.pcd" << std::endl;
+	 pcl::io::savePCDFileASCII (mpose_graph_path + "vlsam_pcd.pcd", cloud);
+	 std::cerr << "Saved " << cloud.points.size () << " data points to " << mpose_graph_path + "vlsam_pcd.pcd" << std::endl;
+}
+
+void CloudPointMap::loadPointCloud(){
+	std::string file = mpose_graph_path + "vlsam_pcd.pcd";
+	if (pcl::io::loadPCDFile<VSlamPoint> (file, *mcloud) == -1) //* load the file
+	{
+		cout<<"Couldn't read file "<<file<<endl;
+		return;
+	}
+	for(unsigned int i=0; i < mcloud->size(); i++){
+
+		pcl::PointXYZ pnt;
+		pnt.x = mcloud->points[i].x;
+		pnt.y = mcloud->points[i].y;
+		pnt.z = mcloud->points[i].z;
+		mcloudxyz->push_back(pnt);
+
+	}
+	std::cout << "Loaded " << mcloud->points.size () << " data points from "+file << std::endl;
 }
 CloudPointMap::~CloudPointMap() {
 	// TODO Auto-generated destructor stub
