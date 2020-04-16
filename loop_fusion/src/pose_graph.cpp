@@ -10,6 +10,7 @@
  *******************************************************/
 
 #include "pose_graph.h"
+#include "CloudPointMap.h"
 
 PoseGraph::PoseGraph()
 {
@@ -93,6 +94,7 @@ void PoseGraph::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
     {
         TicToc tmp_t;
         loop_index = detectLoop(cur_kf, cur_kf->index);
+//        cout<<"detectloop="<<tmp_t.toc()<<endl;
     }
     else
     {
@@ -102,8 +104,10 @@ void PoseGraph::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
 	{
         //printf(" %d detect loop with %d \n", cur_kf->index, loop_index);
         KeyFrame* old_kf = getKeyFrame(loop_index);
-
-        if (cur_kf->findConnection(old_kf))
+        TicToc tmp_t;
+        bool bfindconn = cur_kf->findConnection(old_kf);
+//        cout<<"findConnection="<<tmp_t.toc()<<endl;
+        if (bfindconn)
         {
             if (earliest_loop_index > loop_index || earliest_loop_index == -1)
                 earliest_loop_index = loop_index;
@@ -981,6 +985,9 @@ void PoseGraph::savePoseGraph()
         fclose(keypoints_file);
     }
     fclose(pFile);
+
+    CloudPointMap cpm;
+    cpm.saveMap(keyframelist);
 
     printf("save pose graph time: %f s\n", tmp_t.toc() / 1000);
     m_keyframelist.unlock();
