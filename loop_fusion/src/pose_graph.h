@@ -68,7 +68,7 @@ public:
 	Matrix3d w_r_vio;
 
 
-private:
+protected:
 	int detectLoop(KeyFrame* keyframe, int frame_index);
 	void addKeyFrameIntoVoc(KeyFrame* keyframe);
 	void optimize4DoF();

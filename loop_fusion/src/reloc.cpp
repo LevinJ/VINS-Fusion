@@ -5,6 +5,73 @@
 #include "sensors/lidar.h"
 #include "render/render.h"
 #include "CloudPointMap.h"
+
+#include <vector>
+#include <ros/ros.h>
+#include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
+#include <sensor_msgs/PointCloud.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/image_encodings.h>
+#include <visualization_msgs/Marker.h>
+#include <std_msgs/Bool.h>
+#include <cv_bridge/cv_bridge.h>
+#include <iostream>
+#include <ros/package.h>
+#include <mutex>
+#include <queue>
+#include <thread>
+#include <eigen3/Eigen/Dense>
+#include <opencv2/opencv.hpp>
+#include <opencv2/core/eigen.hpp>
+#include "keyframe.h"
+#include "utility/tic_toc.h"
+#include "pose_graph.h"
+#include "utility/CameraPoseVisualization.h"
+#include "parameters.h"
+#define SKIP_FIRST_CNT 10
+using namespace std;
+
+queue<sensor_msgs::ImageConstPtr> image_buf;
+queue<sensor_msgs::PointCloudConstPtr> point_buf;
+queue<nav_msgs::Odometry::ConstPtr> pose_buf;
+queue<Eigen::Vector3d> odometry_buf;
+std::mutex m_buf;
+std::mutex m_process;
+int frame_index  = 0;
+int sequence = 1;
+
+int skip_first_cnt = 0;
+int SKIP_CNT;
+int skip_cnt = 0;
+//bool load_flag = 0;
+bool start_flag = 0;
+double SKIP_DIS = 0;
+
+int VISUALIZATION_SHIFT_X;
+int VISUALIZATION_SHIFT_Y;
+int ROW;
+int COL;
+int DEBUG_IMAGE;
+
+camodocal::CameraPtr m_camera;
+Eigen::Vector3d tic;
+Eigen::Matrix3d qic;
+ros::Publisher pub_match_img;
+ros::Publisher pub_camera_pose_visual;
+ros::Publisher pub_odometry_rect;
+
+std::string BRIEF_PATTERN_FILE;
+std::string POSE_GRAPH_SAVE_PATH;
+std::string VINS_RESULT_PATH;
+CameraPoseVisualization cameraposevisual(1, 0, 0, 1);
+Eigen::Vector3d last_t(-100, -100, -100);
+double last_image_time = -1;
+
+ros::Publisher pub_point_cloud, pub_margin_cloud;
+
+
+
 //#include "processPointClouds.h"
 // using templates for processPointClouds so also include .cpp to help linker
 //#include "processPointClouds.cpp"
@@ -155,17 +222,118 @@ void initCamera(CameraAngle setAngle, pcl::visualization::PCLVisualizer::Ptr& vi
         viewer->addCoordinateSystem (1.0);
 }
 
+int cpm_init(std::string pkg_path, string config_file, CloudPointMap &posegraph)
+{
+//    ros::init(argc, argv, "loop_fusion");
+//    ros::NodeHandle n("~");
+//    posegraph.registerPub(n);
+
+    VISUALIZATION_SHIFT_X = 0;
+    VISUALIZATION_SHIFT_Y = 0;
+    SKIP_CNT = 0;
+    SKIP_DIS = 0;
+
+
+    cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
+    if(!fsSettings.isOpened())
+    {
+        std::cerr << "ERROR: Wrong path to settings" << std::endl;
+    }
+
+    cameraposevisual.setScale(0.1);
+    cameraposevisual.setLineWidth(0.01);
+
+    std::string IMAGE_TOPIC;
+    int LOAD_PREVIOUS_POSE_GRAPH;
+
+    ROW = fsSettings["image_height"];
+    COL = fsSettings["image_width"];
+
+    string vocabulary_file = pkg_path + "/../support_files/brief_k10L6.bin";
+    cout << "vocabulary_file" << vocabulary_file << endl;
+    posegraph.loadVocabulary(vocabulary_file);
+
+    BRIEF_PATTERN_FILE = pkg_path + "/../support_files/brief_pattern.yml";
+    cout << "BRIEF_PATTERN_FILE" << BRIEF_PATTERN_FILE << endl;
+
+    int pn = config_file.find_last_of('/');
+    std::string configPath = config_file.substr(0, pn);
+    std::string cam0Calib;
+    fsSettings["cam0_calib"] >> cam0Calib;
+    std::string cam0Path = configPath + "/" + cam0Calib;
+    printf("cam calib path: %s\n", cam0Path.c_str());
+    m_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(cam0Path.c_str());
+
+    fsSettings["image0_topic"] >> IMAGE_TOPIC;
+    fsSettings["pose_graph_save_path"] >> POSE_GRAPH_SAVE_PATH;
+    fsSettings["output_path"] >> VINS_RESULT_PATH;
+    fsSettings["save_image"] >> DEBUG_IMAGE;
+
+    LOAD_PREVIOUS_POSE_GRAPH = 1;
+    VINS_RESULT_PATH = VINS_RESULT_PATH + "/vio_loop.csv";
+    std::ofstream fout(VINS_RESULT_PATH, std::ios::out);
+    fout.close();
+
+//    int USE_IMU = fsSettings["imu"];
+//    posegraph.setIMUFlag(USE_IMU);
+    fsSettings.release();
+
+    posegraph.loadPoseGraph();
+
+//    if (LOAD_PREVIOUS_POSE_GRAPH)
+//    {
+//        printf("load pose graph\n");
+//        m_process.lock();
+//        posegraph.loadPoseGraph();
+//        m_process.unlock();
+//        printf("load pose graph finish\n");
+//        load_flag = 1;
+//    }
+//    else
+//    {
+//        printf("no previous pose graph\n");
+//        load_flag = 1;
+//    }
+
+//    ros::Subscriber sub_vio = n.subscribe("/vins_estimator/odometry", 2000, vio_callback);
+//    ros::Subscriber sub_image = n.subscribe(IMAGE_TOPIC, 2000, image_callback);
+//    ros::Subscriber sub_pose = n.subscribe("/vins_estimator/keyframe_pose", 2000, pose_callback);
+//    ros::Subscriber sub_extrinsic = n.subscribe("/vins_estimator/extrinsic", 2000, extrinsic_callback);
+//    ros::Subscriber sub_point = n.subscribe("/vins_estimator/keyframe_point", 2000, point_callback);
+//    ros::Subscriber sub_margin_point = n.subscribe("/vins_estimator/margin_cloud", 2000, margin_point_callback);
+//
+//    pub_match_img = n.advertise<sensor_msgs::Image>("match_image", 1000);
+//    pub_camera_pose_visual = n.advertise<visualization_msgs::MarkerArray>("camera_pose_visual", 1000);
+//    pub_point_cloud = n.advertise<sensor_msgs::PointCloud>("point_cloud_loop_rect", 1000);
+//    pub_margin_cloud = n.advertise<sensor_msgs::PointCloud>("margin_cloud_loop_rect", 1000);
+//    pub_odometry_rect = n.advertise<nav_msgs::Odometry>("odometry_rect", 1000);
+
+//    std::thread measurement_process;
+//    std::thread keyboard_command_process;
+//
+//    measurement_process = std::thread(process);
+//    keyboard_command_process = std::thread(command);
+//
+//    ros::spin();
+
+    return 0;
+}
 
 int main (int argc, char** argv)
 {
-    std::cout << "starting enviroment" << std::endl;
+
+    string config_file = argv[1];
+    printf("config_file: %s\n", argv[1]);
+    std::string pkg_path = "/home/levin/workspace/ros_projects/src/VINS-Fusion/loop_fusion";
+    CloudPointMap cpm;
+
+    cpm_init(pkg_path, config_file, cpm);
 
     pcl::visualization::PCLVisualizer::Ptr viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
     CameraAngle setAngle = TopDown;
     initCamera(setAngle, viewer);
 //    simpleHighway(viewer);
-    CloudPointMap cpm("/home/levin/output/pose_graph/");
-    cpm.loadPointCloud();
+
     renderPointCloud(viewer, cpm.mcloudxyz, "pc1", Color(0,1,0));
 
 

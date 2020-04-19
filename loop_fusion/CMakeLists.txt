@@ -59,6 +59,20 @@ add_executable(reloc_node
     src/reloc.cpp
     src/render/render.cpp
 	src/CloudPointMap.cpp
+	
+	#src/pose_graph_common.cpp
+	src/pose_graph.cpp
+	src/keyframe.cpp
+	src/utility/CameraPoseVisualization.cpp
+	src/ThirdParty/DBoW/BowVector.cpp
+	src/ThirdParty/DBoW/FBrief.cpp
+	src/ThirdParty/DBoW/FeatureVector.cpp
+	src/ThirdParty/DBoW/QueryResults.cpp
+	src/ThirdParty/DBoW/ScoringObject.cpp
+	src/ThirdParty/DUtils/Random.cpp
+	src/ThirdParty/DUtils/Timestamp.cpp
+	src/ThirdParty/DVision/BRIEF.cpp
+	src/ThirdParty/VocabularyBinary.cpp
     )
 
 target_link_libraries(reloc_node ${catkin_LIBRARIES}  ${OpenCV_LIBS} ${CERES_LIBRARIES} ${PCL_LIBRARIES}) 

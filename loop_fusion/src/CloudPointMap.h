@@ -19,6 +19,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/io/pcd_io.h>
 #include "parameters.h"
+#include "pose_graph.h"
 
 struct VSlamPoint
 {
@@ -33,18 +34,17 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (VSlamPoint,           // here we assume a XYZ
                                    (float, z, z)
                                    (uint32_t, id, id)
 )
-
-class CloudPointMap {
+class CloudPointMap: public PoseGraph {
 private:
-	std::string mpose_graph_path;
-
+//	std::string mpose_graph_path;
+	void loadPointCloud();
 public:
 	pcl::PointCloud<VSlamPoint>::Ptr mcloud;
 	pcl::PointCloud<pcl::PointXYZ>::Ptr mcloudxyz;
-	CloudPointMap(std::string pose_graph_path);
+	CloudPointMap();
 	virtual ~CloudPointMap();
+	void loadPoseGraph();
 
-	void loadPointCloud();
 	void saveMap(std::list<KeyFrame*> &keyframelist);
 };
 
