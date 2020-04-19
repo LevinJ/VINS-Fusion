@@ -35,10 +35,13 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (VSlamPoint,           // here we assume a XYZ
                                    (uint32_t, id, id)
 )
 class CloudPointMap: public PoseGraph {
-private:
+protected:
+	int detectLoop(KeyFrame* keyframe, int frame_index);
 //	std::string mpose_graph_path;
 	void loadPointCloud();
+	void addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop);
 public:
+	void reloc_frame(KeyFrame* keyframe);
 	pcl::PointCloud<VSlamPoint>::Ptr mcloud;
 	pcl::PointCloud<pcl::PointXYZ>::Ptr mcloudxyz;
 	CloudPointMap();

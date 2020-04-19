@@ -319,6 +319,24 @@ int cpm_init(std::string pkg_path, string config_file, CloudPointMap &posegraph)
     return 0;
 }
 
+KeyFrame*  gen_keyframe(){
+	auto image = cv::imread("/home/levin/output/pose_graph/0_image.png", cv::IMREAD_GRAYSCALE);
+	Vector3d T = Vector3d(0,
+						  0,
+						  0);
+	Matrix3d R = Quaterniond(1,
+							 0,
+							 0,
+							 0).toRotationMatrix();
+	double timestamp = 1576825210.502939;
+	vector<cv::Point3f> point_3d;
+	vector<cv::Point2f> point_2d_uv;
+	vector<cv::Point2f> point_2d_normal;
+	vector<double> point_id;
+	KeyFrame* keyframe = new KeyFrame(timestamp, frame_index, T, R, image,
+	                                   point_3d, point_2d_uv, point_2d_normal, point_id, sequence);
+	return keyframe;
+}
 int main (int argc, char** argv)
 {
 
@@ -329,12 +347,16 @@ int main (int argc, char** argv)
 
     cpm_init(pkg_path, config_file, cpm);
 
-    pcl::visualization::PCLVisualizer::Ptr viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
-    CameraAngle setAngle = TopDown;
-    initCamera(setAngle, viewer);
-//    simpleHighway(viewer);
 
-    renderPointCloud(viewer, cpm.mcloudxyz, "pc1", Color(0,1,0));
+//    simpleHighway(viewer);
+    KeyFrame* keyframe = gen_keyframe();
+    cpm.reloc_frame(keyframe);
+
+
+    pcl::visualization::PCLVisualizer::Ptr viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
+	CameraAngle setAngle = TopDown;
+	initCamera(setAngle, viewer);
+	renderPointCloud(viewer, cpm.mcloudxyz, "pc1", Color(0,1,0));
 
 
 
