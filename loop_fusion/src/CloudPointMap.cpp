@@ -8,6 +8,7 @@
 #include "CloudPointMap.h"
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
+#include "utility/utility.h"
 
 using namespace std;
 
@@ -45,6 +46,25 @@ void CloudPointMap::saveMap(std::list<KeyFrame*> &keyframelist){
 
 	 pcl::io::savePCDFileASCII (POSE_GRAPH_SAVE_PATH + "vlsam_pcd.pcd", cloud);
 	 std::cerr << "Saved " << cloud.points.size () << " data points to " << POSE_GRAPH_SAVE_PATH + "vlsam_pcd.pcd" << std::endl;
+
+	 // write point_id, point_2d_uv, point_2d_norm
+	 for (list<KeyFrame*>::iterator it = keyframelist.begin(); it != keyframelist.end(); it++){
+		 auto keypoints_path = POSE_GRAPH_SAVE_PATH + to_string((*it)->index) + "_keypoints_window.txt";
+		 auto keypoints_file = fopen(keypoints_path.c_str(), "w");
+
+		 auto pointid_path = POSE_GRAPH_SAVE_PATH + to_string((*it)->index) + "_pointid.txt";
+		 auto pointid_file = fopen(pointid_path.c_str(), "w");
+
+		 for (int i = 0; i < (int)(*it)->point_id.size(); i++)
+		 {
+			 fprintf(pointid_file, "%f\n", (*it)->point_id[i]);
+
+			 fprintf(keypoints_file, "%f %f %f %f\n", (*it)->point_2d_uv[i].x, (*it)->point_2d_uv[i].y,
+			                                                     (*it)->point_2d_norm[i].x, (*it)->point_2d_norm[i].y);
+		 }
+		 fclose(keypoints_file);
+		 fclose(pointid_file);
+	 }
 }
 
 void CloudPointMap::loadPointCloud(){
@@ -61,6 +81,11 @@ void CloudPointMap::loadPointCloud(){
 		pnt.y = mcloud->points[i].y;
 		pnt.z = mcloud->points[i].z;
 		mcloudxyz->push_back(pnt);
+		uint32_t id = mcloud->points[i].id;
+		if(mpointidmap.find(id) == mpointidmap.end()){
+			mpointidmap[id] = {pnt.x, pnt.y,pnt.z};
+		}
+
 
 	}
 	std::cout << "Loaded " << mcloud->points.size () << " data points from "+file << std::endl;
@@ -71,6 +96,7 @@ CloudPointMap::~CloudPointMap() {
 
 void CloudPointMap::loadPoseGraph()
 {
+	loadPointCloud();
     TicToc tmp_t;
     FILE * pFile;
     string file_path = POSE_GRAPH_SAVE_PATH + "pose_graph.txt";
@@ -150,37 +176,67 @@ void CloudPointMap::loadPoseGraph()
                 earliest_loop_index = loop_index;
             }
 
-        // load keypoints, brief_descriptors
-        string brief_path = POSE_GRAPH_SAVE_PATH + to_string(index) + "_briefdes.dat";
-        std::ifstream brief_file(brief_path, std::ios::binary);
-        string keypoints_path = POSE_GRAPH_SAVE_PATH + to_string(index) + "_keypoints.txt";
-        FILE *keypoints_file;
-        keypoints_file = fopen(keypoints_path.c_str(), "r");
-        vector<cv::KeyPoint> keypoints;
-        vector<cv::KeyPoint> keypoints_norm;
-        vector<BRIEF::bitset> brief_descriptors;
-        for (int i = 0; i < keypoints_num; i++)
-        {
-            BRIEF::bitset tmp_des;
-            brief_file >> tmp_des;
-            brief_descriptors.push_back(tmp_des);
-            cv::KeyPoint tmp_keypoint;
-            cv::KeyPoint tmp_keypoint_norm;
-            double p_x, p_y, p_x_norm, p_y_norm;
-            if(!fscanf(keypoints_file,"%lf %lf %lf %lf", &p_x, &p_y, &p_x_norm, &p_y_norm))
-                printf(" fail to load pose graph \n");
-            tmp_keypoint.pt.x = p_x;
-            tmp_keypoint.pt.y = p_y;
-            tmp_keypoint_norm.pt.x = p_x_norm;
-            tmp_keypoint_norm.pt.y = p_y_norm;
-            keypoints.push_back(tmp_keypoint);
-            keypoints_norm.push_back(tmp_keypoint_norm);
-        }
-        brief_file.close();
-        fclose(keypoints_file);
+        // load window keypoints, 3dpoint, pointid
+//        string brief_path = POSE_GRAPH_SAVE_PATH + to_string(index) + "_briefdes.dat";
+//        std::ifstream brief_file(brief_path, std::ios::binary);
+//        string keypoints_path = POSE_GRAPH_SAVE_PATH + to_string(index) + "_keypoints_window.txt";
+//        FILE *keypoints_file;
+//        keypoints_file = fopen(keypoints_path.c_str(), "r");
+//        vector<cv::KeyPoint> keypoints;
+//        vector<cv::KeyPoint> keypoints_norm;
+//        vector<BRIEF::bitset> brief_descriptors;
+//        for (int i = 0; i < keypoints_num; i++)
+//        {
+//            BRIEF::bitset tmp_des;
+//            brief_file >> tmp_des;
+//            brief_descriptors.push_back(tmp_des);
+//            cv::KeyPoint tmp_keypoint;
+//            cv::KeyPoint tmp_keypoint_norm;
+//            double p_x, p_y, p_x_norm, p_y_norm;
+//            if(!fscanf(keypoints_file,"%lf %lf %lf %lf", &p_x, &p_y, &p_x_norm, &p_y_norm))
+//                printf(" fail to load pose graph \n");
+//            tmp_keypoint.pt.x = p_x;
+//            tmp_keypoint.pt.y = p_y;
+//            tmp_keypoint_norm.pt.x = p_x_norm;
+//            tmp_keypoint_norm.pt.y = p_y_norm;
+//            keypoints.push_back(tmp_keypoint);
+//            keypoints_norm.push_back(tmp_keypoint_norm);
+//        }
+//        brief_file.close();
+//        fclose(keypoints_file);
 
-        KeyFrame* keyframe = new KeyFrame(time_stamp, index, VIO_T, VIO_R, PG_T, PG_R, image, loop_index, loop_info, keypoints, keypoints_norm, brief_descriptors);
-        loadKeyFrame(keyframe, 0);
+        vector<cv::Point3f> point_3d;
+		vector<cv::Point2f> point_2d_uv;
+		vector<cv::Point2f> point_2d_normal;
+		vector<double> point_id;
+
+		auto keypoints_path = POSE_GRAPH_SAVE_PATH + to_string(index) + "_keypoints_window.txt";
+		auto keypoints_file = fopen(keypoints_path.c_str(), "r");
+		auto pointid_path = POSE_GRAPH_SAVE_PATH + to_string(index) + "_pointid.txt";
+		auto pointid_file = fopen(pointid_path.c_str(), "r");
+
+		double p_x, p_y, p_x_norm, p_y_norm;
+		double id;
+		std::vector<double> pnt;
+		while(fscanf(keypoints_file,"%lf %lf %lf %lf", &p_x, &p_y, &p_x_norm, &p_y_norm) != EOF){
+			if(!fscanf(pointid_file,"%lf", &id)){
+				printf(" fail to load pose graph \n");
+				return;
+			}
+			point_2d_uv.emplace_back(p_x, p_y);
+			point_2d_normal.emplace_back(p_x_norm, p_y_norm);
+			point_id.emplace_back(id);
+			pnt = mpointidmap[id];
+			point_3d.emplace_back(pnt[0], pnt[1],pnt[2]);
+
+		}
+		int sequence = 0;
+		KeyFrame* keyframe = new KeyFrame(time_stamp, index, PG_T, PG_R, image,
+									   point_3d, point_2d_uv, point_2d_normal, point_id, sequence);
+		loadKeyFrame(keyframe, 0);
+
+//        KeyFrame* keyframe = new KeyFrame(time_stamp, index, VIO_T, VIO_R, PG_T, PG_R, image, loop_index, loop_info, keypoints, keypoints_norm, brief_descriptors);
+//        loadKeyFrame(keyframe, 0);
 //        if (cnt % 20 == 0)
 //        {
 //            publish();
@@ -188,7 +244,6 @@ void CloudPointMap::loadPoseGraph()
         cnt++;
     }
     fclose (pFile);
-    loadPointCloud();
     printf("load pose graph time: %f s\n", tmp_t.toc()/1000);
     base_sequence = 0;
 }
@@ -231,29 +286,42 @@ void CloudPointMap::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
     {
         addKeyFrameIntoVoc(cur_kf);
     }
-//	if (loop_index != -1)
-//	{
-//        //printf(" %d detect loop with %d \n", cur_kf->index, loop_index);
-//        KeyFrame* old_kf = getKeyFrame(loop_index);
-//        TicToc tmp_t;
+	if (loop_index != -1)
+	{
+        printf(" %d detect loop with %d \n", cur_kf->index, loop_index);
+        KeyFrame* old_kf = getKeyFrame(loop_index);
+//        Vector3d w_P_loop;
+//        Matrix3d w_R_loop;
+//        old_kf->getPose(w_P_loop,w_R_loop );
+//        cur_kf->updateVioPose(w_P_loop, w_R_loop);
+
+        TicToc tmp_t;
+        bool bfindconn = old_kf->findConnection(cur_kf);
 //        bool bfindconn = cur_kf->findConnection(old_kf);
-////        cout<<"findConnection="<<tmp_t.toc()<<endl;
-//        if (bfindconn)
-//        {
-//            if (earliest_loop_index > loop_index || earliest_loop_index == -1)
-//                earliest_loop_index = loop_index;
-//
-//            Vector3d w_P_old, w_P_cur, vio_P_cur;
-//            Matrix3d w_R_old, w_R_cur, vio_R_cur;
-//            old_kf->getVioPose(w_P_old, w_R_old);
-//            cur_kf->getVioPose(vio_P_cur, vio_R_cur);
-//
-//            Vector3d relative_t;
-//            Quaterniond relative_q;
-//            relative_t = cur_kf->getLoopRelativeT();
-//            relative_q = (cur_kf->getLoopRelativeQ()).toRotationMatrix();
-//            w_P_cur = w_R_old * relative_t + w_P_old;
-//            w_R_cur = w_R_old * relative_q;
+        cout<<"findConnection="<<tmp_t.toc()<<endl;
+        if (bfindconn)
+        {
+            if (earliest_loop_index > loop_index || earliest_loop_index == -1)
+                earliest_loop_index = loop_index;
+
+            Vector3d w_P_old, w_P_cur, vio_P_cur;
+            Matrix3d w_R_old, w_R_cur, vio_R_cur;
+            old_kf->getVioPose(w_P_old, w_R_old);
+            cur_kf->getVioPose(vio_P_cur, vio_R_cur);
+
+            //from findconnection, we can relative pose, current <-- old, we will convert it old <--cur
+            Vector3d relative_t;
+            Quaterniond relative_q;
+            relative_q = (old_kf->getLoopRelativeQ()).toRotationMatrix().transpose();
+            relative_t = -(old_kf->getLoopRelativeQ()).toRotationMatrix().transpose() * old_kf->getLoopRelativeT();
+
+
+
+            w_P_cur = w_R_old * relative_t + w_P_old;
+            w_R_cur = w_R_old * relative_q;
+            auto relative_yaw = Utility::normalizeAngle(Utility::R2ypr(w_R_cur).x() - Utility::R2ypr(w_R_old).x());
+            cout << "current pos = " << w_P_cur.transpose()<<",yaw="<< relative_yaw << endl;
+
 //            double shift_yaw;
 //            Matrix3d shift_r;
 //            Vector3d shift_t;
@@ -288,11 +356,11 @@ void CloudPointMap::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
 //                }
 //                sequence_loop[cur_kf->sequence] = 1;
 //            }
-//            m_optimize_buf.lock();
-//            optimize_buf.push(cur_kf->index);
-//            m_optimize_buf.unlock();
-//        }
-//	}
+////            m_optimize_buf.lock();
+////            optimize_buf.push(cur_kf->index);
+////            m_optimize_buf.unlock();
+        }
+	}
 //	m_keyframelist.lock();
 //    Vector3d P;
 //    Matrix3d R;
@@ -318,28 +386,6 @@ void CloudPointMap::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
 //    {
 //        ofstream loop_path_file(VINS_RESULT_PATH, ios::app);
 //        loop_path_file.setf(ios::fixed, ios::floatfield);
-////        loop_path_file.precision(0);
-////        loop_path_file << cur_kf->time_stamp * 1e9 << ",";
-////        loop_path_file.precision(5);
-////        loop_path_file  << P.x() << ","
-////              << P.y() << ","
-////              << P.z() << ","
-////              << Q.w() << ","
-////              << Q.x() << ","
-////              << Q.y() << ","
-////              << Q.z() << ","
-////              << endl;
-////        loop_path_file << cur_kf->time_stamp << " ";
-////        		loop_path_file.precision(7);
-////        		loop_path_file  << P.x() << " "
-////        			  << P.y() << " "
-////        			  << P.z() << " "
-////        			  << Q.x() << " "
-////        			  << Q.y() << " "
-////        			  << Q.z() << " "
-////        			  << Q.w()<< endl;
-////
-////                loop_path_file.close();
 //        //TUM format
 //        loop_path_file.precision(6);
 //		loop_path_file << cur_kf->time_stamp << " ";

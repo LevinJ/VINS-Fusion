@@ -340,6 +340,11 @@ KeyFrame*  gen_keyframe(){
 int main (int argc, char** argv)
 {
 
+	tic = {-0.02,2.15, 0.915};
+
+	qic <<1, 0, 0,
+		0, 0, 1,
+		0, -1, 0;
     string config_file = argv[1];
     printf("config_file: %s\n", argv[1]);
     std::string pkg_path = "/home/levin/workspace/ros_projects/src/VINS-Fusion/loop_fusion";

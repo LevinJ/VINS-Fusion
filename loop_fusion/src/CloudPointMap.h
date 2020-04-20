@@ -20,6 +20,8 @@
 #include <pcl/io/pcd_io.h>
 #include "parameters.h"
 #include "pose_graph.h"
+#include <map>
+#include <vector>
 
 struct VSlamPoint
 {
@@ -36,6 +38,7 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (VSlamPoint,           // here we assume a XYZ
 )
 class CloudPointMap: public PoseGraph {
 protected:
+	std::map<int, std::vector<double>> mpointidmap;
 	int detectLoop(KeyFrame* keyframe, int frame_index);
 //	std::string mpose_graph_path;
 	void loadPointCloud();

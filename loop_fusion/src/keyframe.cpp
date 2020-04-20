@@ -283,7 +283,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	matched_id = point_id;
 
 	TicToc t_match;
-	#if 0
+	#if 1
 		if (DEBUG_IMAGE)    
 	    {
 	        cv::Mat gray_img, loop_match_img;
@@ -302,7 +302,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	            cv::circle(loop_match_img, old_pt, 5, cv::Scalar(0, 255, 0));
 	        }
 	        ostringstream path;
-	        path << "/home/tony-ws1/raw_data/loop_image/"
+	        path << "/home/levin/raw_data/loop_image/"
 	                << index << "-"
 	                << old_kf->index << "-" << "0raw_point.jpg";
 	        cv::imwrite( path.str().c_str(), loop_match_img);
@@ -318,7 +318,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	reduceVector(matched_id, status);
 	//printf("search by des finish\n");
 
-	#if 0 
+	#if 1
 		if (DEBUG_IMAGE)
 	    {
 			int gap = 10;
@@ -347,16 +347,16 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	        }
 
 	        ostringstream path, path1, path2;
-	        path <<  "/home/tony-ws1/raw_data/loop_image/"
+	        path <<  "/home/levin/raw_data/loop_image/"
 	                << index << "-"
 	                << old_kf->index << "-" << "1descriptor_match.jpg";
 	        cv::imwrite( path.str().c_str(), loop_match_img);
 	        /*
-	        path1 <<  "/home/tony-ws1/raw_data/loop_image/"
+	        path1 <<  "/home/levin/raw_data/loop_image/"
 	                << index << "-"
 	                << old_kf->index << "-" << "1descriptor_match_1.jpg";
 	        cv::imwrite( path1.str().c_str(), image);
-	        path2 <<  "/home/tony-ws1/raw_data/loop_image/"
+	        path2 <<  "/home/levin/raw_data/loop_image/"
 	                << index << "-"
 	                << old_kf->index << "-" << "1descriptor_match_2.jpg";
 	        cv::imwrite( path2.str().c_str(), old_img);	        
@@ -403,7 +403,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	        }
 
 	        ostringstream path;
-	        path <<  "/home/tony-ws1/raw_data/loop_image/"
+	        path <<  "/home/levin/raw_data/loop_image/"
 	                << index << "-"
 	                << old_kf->index << "-" << "2fundamental_match.jpg";
 	        cv::imwrite( path.str().c_str(), loop_match_img);
@@ -457,25 +457,25 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	            putText(notation, "previous frame: " + to_string(old_kf->index) + "  sequence: " + to_string(old_kf->sequence), cv::Point2f(20 + COL + gap, 30), CV_FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255), 3);
 	            cv::vconcat(notation, loop_match_img, loop_match_img);
 
-	            /*
+
 	            ostringstream path;
-	            path <<  "/home/tony-ws1/raw_data/loop_image/"
+	            path <<  "/home/levin/raw_data/loop_image/"
 	                    << index << "-"
 	                    << old_kf->index << "-" << "3pnp_match.jpg";
 	            cv::imwrite( path.str().c_str(), loop_match_img);
-	            */
-	            if ((int)matched_2d_cur.size() > MIN_LOOP_NUM)
-	            {
-	            	/*
-	            	cv::imshow("loop connection",loop_match_img);  
-	            	cv::waitKey(10);  
-	            	*/
-	            	cv::Mat thumbimage;
-	            	cv::resize(loop_match_img, thumbimage, cv::Size(loop_match_img.cols / 2, loop_match_img.rows / 2));
-	    	    	sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", thumbimage).toImageMsg();
-	                msg->header.stamp = ros::Time(time_stamp);
-	    	    	pub_match_img.publish(msg);
-	            }
+
+//	            if ((int)matched_2d_cur.size() > MIN_LOOP_NUM)
+//	            {
+//	            	/*
+//	            	cv::imshow("loop connection",loop_match_img);
+//	            	cv::waitKey(10);
+//	            	*/
+//	            	cv::Mat thumbimage;
+//	            	cv::resize(loop_match_img, thumbimage, cv::Size(loop_match_img.cols / 2, loop_match_img.rows / 2));
+//	    	    	sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", thumbimage).toImageMsg();
+//	                msg->header.stamp = ros::Time(time_stamp);
+//	    	    	pub_match_img.publish(msg);
+//	            }
 	        }
 	    #endif
 	}
