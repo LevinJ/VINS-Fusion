@@ -464,18 +464,18 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	                    << old_kf->index << "-" << "3pnp_match.jpg";
 	            cv::imwrite( path.str().c_str(), loop_match_img);
 
-//	            if ((int)matched_2d_cur.size() > MIN_LOOP_NUM)
-//	            {
-//	            	/*
-//	            	cv::imshow("loop connection",loop_match_img);
-//	            	cv::waitKey(10);
-//	            	*/
-//	            	cv::Mat thumbimage;
-//	            	cv::resize(loop_match_img, thumbimage, cv::Size(loop_match_img.cols / 2, loop_match_img.rows / 2));
-//	    	    	sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", thumbimage).toImageMsg();
-//	                msg->header.stamp = ros::Time(time_stamp);
-//	    	    	pub_match_img.publish(msg);
-//	            }
+	            if ((int)matched_2d_cur.size() > MIN_LOOP_NUM)
+	            {
+	            	/*
+	            	cv::imshow("loop connection",loop_match_img);
+	            	cv::waitKey(10);
+	            	*/
+	            	cv::Mat thumbimage;
+	            	cv::resize(loop_match_img, thumbimage, cv::Size(loop_match_img.cols / 2, loop_match_img.rows / 2));
+	    	    	sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", thumbimage).toImageMsg();
+	                msg->header.stamp = ros::Time(time_stamp);
+	    	    	pub_match_img.publish(msg);
+	            }
 	        }
 	    #endif
 	}
@@ -496,6 +496,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	    	loop_info << relative_t.x(), relative_t.y(), relative_t.z(),
 	    	             relative_q.w(), relative_q.x(), relative_q.y(), relative_q.z(),
 	    	             relative_yaw;
+	    	cout << "valid loop detected, " <<sequence<<", "<< index<< "-->"<< old_kf->sequence<<", "<<old_kf->index<< endl;
 	    	//cout << "pnp relative_t " << relative_t.transpose() << endl;
 	    	//cout << "pnp relative_q " << relative_q.w() << " " << relative_q.vec().transpose() << endl;
 	        return true;
