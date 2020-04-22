@@ -230,6 +230,52 @@ void CameraPoseVisualization::publish_image_by( ros::Publisher &pub, const std_m
 
     pub.publish(image);
 }
+void CameraPoseVisualization::publish_parking_lot(ros::Publisher &marker_pub,double yaw,const Eigen::Vector3d& p){
+	visualization_msgs::Marker line_strip;
+	line_strip.header.frame_id = "world";
+	line_strip.header.stamp = ros::Time::now();
+	line_strip.ns = "parking_lot";
+	line_strip.action = visualization_msgs::Marker::ADD;
+
+
+	Eigen::AngleAxisd rotation_vector ( yaw, Eigen::Vector3d ( 0,0,1 ) );     //沿 Z 轴旋转 yaw
+
+	Eigen::Quaterniond q = Eigen::Quaterniond(rotation_vector);
+	line_strip.pose.orientation.w = 1;
+
+	line_strip.id = 0;
+
+	line_strip.type = visualization_msgs::Marker::LINE_STRIP;
+
+	// LINE_STRIP/LINE_LIST markers use only the x component of scale, for the line width
+	line_strip.scale.x = 0.1;
+
+	// Line strip is blue
+	line_strip.color.r = 1.0;
+	line_strip.color.a = 1.0;
+
+	geometry_msgs::Point p1,p2,p3,p4;
+
+	int w = 5;
+	int h = 8;
+	int z = 0;
+	float scale = 1;
+	const Eigen::Vector3d p1f = Eigen::Vector3d(0, 0, z);
+	const Eigen::Vector3d p2f = Eigen::Vector3d(0, h, z);
+	const Eigen::Vector3d p3f = Eigen::Vector3d(w, h, z);
+	const Eigen::Vector3d p4f = Eigen::Vector3d(w, 0, z);
+
+	Eigen2Point(q * (scale *p1f) + p, p1);
+	Eigen2Point(q * (scale *p2f) + p, p2);
+	Eigen2Point(q * (scale *p3f) + p, p3);
+	Eigen2Point(q * (scale *p4f) + p, p4);
+
+	line_strip.points.push_back(p1);
+	line_strip.points.push_back(p2);
+	line_strip.points.push_back(p3);
+	line_strip.points.push_back(p4);
+	marker_pub.publish(line_strip);
+}
 /*
 void CameraPoseVisualization::add_image(const Eigen::Vector3d& T, const Eigen::Matrix3d& R, const cv::Mat &src)
 {

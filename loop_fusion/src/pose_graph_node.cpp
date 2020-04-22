@@ -71,7 +71,7 @@ CameraPoseVisualization cameraposevisual(1, 0, 0, 1);
 Eigen::Vector3d last_t(-100, -100, -100);
 double last_image_time = -1;
 
-ros::Publisher pub_point_cloud, pub_margin_cloud;
+ros::Publisher pub_point_cloud, pub_margin_cloud, g_pub_base_point_cloud;
 
 void new_sequence()
 {
@@ -462,7 +462,7 @@ int main(int argc, char **argv)
     int USE_IMU = fsSettings["imu"];
     posegraph.setIMUFlag(USE_IMU);
     fsSettings.release();
-
+    g_pub_base_point_cloud = n.advertise<sensor_msgs::PointCloud>("base_point_cloud", 1000, true);
     if (LOAD_PREVIOUS_POSE_GRAPH)
     {
         printf("load pose graph\n");

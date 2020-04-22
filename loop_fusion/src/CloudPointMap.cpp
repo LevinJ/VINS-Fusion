@@ -90,6 +90,20 @@ void CloudPointMap::loadPointCloud(){
 	}
 	std::cout << "Loaded " << mcloud->points.size () << " data points from "+file << std::endl;
 }
+
+void CloudPointMap::publish_cloudponint(ros::Publisher &_pub_base_point_cloud){
+	sensor_msgs::PointCloud point_cloud;
+	point_cloud.header.frame_id = "world";
+	point_cloud.header.stamp = ros::Time::now();
+	for(unsigned int i=0; i < mcloud->size(); i++){
+		geometry_msgs::Point32 pnt;
+		pnt.x = mcloud->points[i].x;
+		pnt.y = mcloud->points[i].y;
+		pnt.z = mcloud->points[i].z;
+		point_cloud.points.push_back(pnt);
+	}
+	_pub_base_point_cloud.publish(point_cloud);
+}
 CloudPointMap::~CloudPointMap() {
 	// TODO Auto-generated destructor stub
 }

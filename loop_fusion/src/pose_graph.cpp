@@ -11,7 +11,6 @@
 
 #include "pose_graph.h"
 #include "CloudPointMap.h"
-
 PoseGraph::PoseGraph()
 {
     posegraph_visualization = new CameraPoseVisualization(1.0, 0.0, 1.0, 1.0);
@@ -32,14 +31,15 @@ PoseGraph::PoseGraph()
 
 PoseGraph::~PoseGraph()
 {
-    t_optimization.detach();
+//    t_optimization.detach();
 }
 
 void PoseGraph::registerPub(ros::NodeHandle &n)
 {
-    pub_pg_path = n.advertise<nav_msgs::Path>("pose_graph_path", 1000);
-    pub_base_path = n.advertise<nav_msgs::Path>("base_path", 1000);
-    pub_pose_graph = n.advertise<visualization_msgs::MarkerArray>("pose_graph", 1000);
+    pub_pg_path = n.advertise<nav_msgs::Path>("pose_graph_path", 1000, true);
+    pub_base_path = n.advertise<nav_msgs::Path>("base_path", 1000, true);
+    pub_pose_graph = n.advertise<visualization_msgs::MarkerArray>("pose_graph", 1000, true);
+    pub_marker = n.advertise<visualization_msgs::Marker>("fixed_marker", 1000, true);
     for (int i = 1; i < 10; i++)
         pub_path[i] = n.advertise<nav_msgs::Path>("path_" + to_string(i), 1000);
 }
@@ -340,7 +340,7 @@ void PoseGraph::loadKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
     */
 
     keyframelist.push_back(cur_kf);
-    //publish();
+    publish();
     m_keyframelist.unlock();
 }
 
@@ -1108,6 +1108,11 @@ void PoseGraph::loadPoseGraph()
         cnt++;
     }
     fclose (pFile);
+    CloudPointMap cpm;
+    cpm.loadPointCloud();
+    cpm.publish_cloudponint(g_pub_base_point_cloud);
+    const Eigen::Vector3d p(-70.036100, 50.243542, -0.357420 );
+    posegraph_visualization->publish_parking_lot(pub_marker, 180.0/180 * M_PI, p);
     printf("load pose graph time: %f s\n", tmp_t.toc()/1000);
     base_sequence = 0;
 }

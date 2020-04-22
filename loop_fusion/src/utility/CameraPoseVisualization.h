@@ -37,6 +37,7 @@ public:
 	void add_loopedge(const Eigen::Vector3d& p0, const Eigen::Vector3d& p1);
 	//void add_image(const Eigen::Vector3d& T, const Eigen::Matrix3d& R, const cv::Mat &src);
 	void publish_image_by( ros::Publisher &pub, const std_msgs::Header &header);
+	void publish_parking_lot(ros::Publisher &marker_pub, double yaw,const Eigen::Vector3d& p);
 private:
 	std::vector<visualization_msgs::Marker> m_markers;
 	std_msgs::ColorRGBA m_image_boundary_color;

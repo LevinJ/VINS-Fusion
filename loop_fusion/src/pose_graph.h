@@ -36,7 +36,7 @@
 #include "ThirdParty/DBoW/TemplatedVocabulary.h"
 
 
-#define SHOW_S_EDGE false
+#define SHOW_S_EDGE true
 #define SHOW_L_EDGE true
 #define SAVE_LOOP_PATH true
 
@@ -93,6 +93,7 @@ protected:
 	BriefDatabase db;
 	BriefVocabulary* voc;
 
+	ros::Publisher pub_marker;
 	ros::Publisher pub_pg_path;
 	ros::Publisher pub_base_path;
 	ros::Publisher pub_pose_graph;
