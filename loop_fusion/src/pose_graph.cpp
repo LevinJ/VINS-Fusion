@@ -1111,8 +1111,7 @@ void PoseGraph::loadPoseGraph()
     CloudPointMap cpm;
     cpm.loadPointCloud();
     cpm.publish_cloudponint(g_pub_base_point_cloud);
-    const Eigen::Vector3d p(-50.000050, 47.121850, -0.447636 );
-    posegraph_visualization->publish_parking_lot(pub_marker, 180.0/180 * M_PI, p);
+    posegraph_visualization->publish_parking_lot(pub_marker, 180.0/180 * M_PI);
     printf("load pose graph time: %f s\n", tmp_t.toc()/1000);
     base_sequence = 0;
 }

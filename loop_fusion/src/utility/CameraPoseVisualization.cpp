@@ -18,6 +18,8 @@ const Eigen::Vector3d CameraPoseVisualization::lt1 = Eigen::Vector3d(-0.7, -0.2,
 const Eigen::Vector3d CameraPoseVisualization::lt2 = Eigen::Vector3d(-1.0, -0.2, 1.0);
 const Eigen::Vector3d CameraPoseVisualization::oc = Eigen::Vector3d(0.0, 0.0, 0.0);
 
+static const Eigen::Vector3d g_parkinglot_1(-50.000050, 47.121850, -0.447636 );
+
 void Eigen2Point(const Eigen::Vector3d& v, geometry_msgs::Point& p) {
     p.x = v.x();
     p.y = v.y();
@@ -230,7 +232,7 @@ void CameraPoseVisualization::publish_image_by( ros::Publisher &pub, const std_m
 
     pub.publish(image);
 }
-void CameraPoseVisualization::publish_parking_lot(ros::Publisher &marker_pub,double yaw,const Eigen::Vector3d& p){
+void CameraPoseVisualization::publish_parking_lot(ros::Publisher &marker_pub,double yaw){
 	visualization_msgs::Marker line_strip;
 	line_strip.header.frame_id = "world";
 	line_strip.header.stamp = ros::Time::now();
@@ -265,10 +267,10 @@ void CameraPoseVisualization::publish_parking_lot(ros::Publisher &marker_pub,dou
 	const Eigen::Vector3d p3f = Eigen::Vector3d(w, h, z);
 	const Eigen::Vector3d p4f = Eigen::Vector3d(w, 0, z);
 
-	Eigen2Point(q * (scale *p1f) + p, p1);
-	Eigen2Point(q * (scale *p2f) + p, p2);
-	Eigen2Point(q * (scale *p3f) + p, p3);
-	Eigen2Point(q * (scale *p4f) + p, p4);
+	Eigen2Point(q * (scale *p1f) + g_parkinglot_1, p1);
+	Eigen2Point(q * (scale *p2f) + g_parkinglot_1, p2);
+	Eigen2Point(q * (scale *p3f) + g_parkinglot_1, p3);
+	Eigen2Point(q * (scale *p4f) + g_parkinglot_1, p4);
 
 	line_strip.points.push_back(p1);
 	line_strip.points.push_back(p2);
@@ -313,6 +315,39 @@ void CameraPoseVisualization::publish_car(ros::Publisher &pub_car,double t, Eige
 	car_mesh.scale.y = major_scale;
 	car_mesh.scale.z = major_scale;
 	markerArray_msg.markers.push_back(car_mesh);
+	//add car position text
+	visualization_msgs::Marker car_pos_marker;
+	car_pos_marker.header.frame_id = "world";
+	car_pos_marker.header.stamp = ros::Time::now();
+	car_pos_marker.ns = "current_position";
+	car_pos_marker.id = 0;
+	car_pos_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+	car_pos_marker.action = visualization_msgs::Marker::ADD;
+
+	car_pos_marker.pose.position.x = t_w_car.x() + 10;
+	car_pos_marker.pose.position.y = t_w_car.y();
+	car_pos_marker.pose.position.z = t_w_car.z();
+	car_pos_marker.pose.orientation.x = 0.0;
+	car_pos_marker.pose.orientation.y = 0.0;
+	car_pos_marker.pose.orientation.z = 0.0;
+	car_pos_marker.pose.orientation.w = 1.0;
+
+	std::stringstream ss;
+	ss.setf(std::ios::fixed);
+	auto rel_pos = g_parkinglot_1-t_w_car;
+	ss<<std::setprecision(2)<<"Parking lot Distance= "<< rel_pos.norm()<<"m, Pose= "<< rel_pos.transpose();
+	car_pos_marker.text = ss.str();
+
+	const double text_scale = 5;
+	car_pos_marker.scale.x = text_scale;
+	car_pos_marker.scale.y = text_scale;
+	car_pos_marker.scale.z = text_scale;
+
+	car_pos_marker.color.r = 0.0f;
+	car_pos_marker.color.g = 1.0f;
+	car_pos_marker.color.b = 0.0f;
+	car_pos_marker.color.a = 1.0;
+	markerArray_msg.markers.push_back(car_pos_marker);
 	pub_car.publish(markerArray_msg);
 }
 /*
