@@ -12,7 +12,7 @@ Panels:
         - /GlobalGroup1/CarModel1
         - /base_path1
         - /base_pointcloud1
-      Splitter Ratio: 0.4651159942150116
+      Splitter Ratio: 0.4639175236225128
     Tree Height: 804
   - Class: rviz/Selection
     Name: Selection
@@ -32,7 +32,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: PointCloud
+    SyncSource: base_pointcloud
   - Class: rviz/Displays
     Help Height: 78
     Name: Displays
@@ -381,6 +381,22 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /loop_fusion/parking_lot
+      Name: parking_lot
+      Namespaces:
+        parking_lot: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /loop_fusion/ego_car
+      Name: ego_car
+      Namespaces:
+        car: true
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:

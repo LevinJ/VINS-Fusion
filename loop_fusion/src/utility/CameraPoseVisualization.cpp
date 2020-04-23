@@ -276,6 +276,45 @@ void CameraPoseVisualization::publish_parking_lot(ros::Publisher &marker_pub,dou
 	line_strip.points.push_back(p4);
 	marker_pub.publish(line_strip);
 }
+
+void CameraPoseVisualization::publish_car(ros::Publisher &pub_car,double t, Eigen::Vector3d t_w_car, Eigen::Quaterniond q_w_car){
+	visualization_msgs::MarkerArray markerArray_msg;
+	visualization_msgs::Marker car_mesh;
+	car_mesh.header.stamp = ros::Time(t);
+	car_mesh.header.frame_id = "world";
+	car_mesh.type = visualization_msgs::Marker::MESH_RESOURCE;
+	car_mesh.action = visualization_msgs::Marker::ADD;
+	car_mesh.id = 0;
+	car_mesh.ns = "car";
+
+	car_mesh.mesh_resource = "package://global_fusion/models/car.dae";
+
+	Eigen::Matrix3d rot;
+	rot << 0, 0, -1, -1, 0, 0, 0, 1, 0;
+
+	Eigen::Quaterniond Q;
+	Q = q_w_car * rot;
+	car_mesh.pose.position.x    = t_w_car.x();
+	car_mesh.pose.position.y    = t_w_car.y();
+	car_mesh.pose.position.z    = t_w_car.z();
+	car_mesh.pose.orientation.w = Q.w();
+	car_mesh.pose.orientation.x = Q.x();
+	car_mesh.pose.orientation.y = Q.y();
+	car_mesh.pose.orientation.z = Q.z();
+
+	car_mesh.color.a = 1.0;
+	car_mesh.color.r = 1.0;
+	car_mesh.color.g = 0.0;
+	car_mesh.color.b = 0.0;
+
+	float major_scale = 2.0;
+
+	car_mesh.scale.x = major_scale;
+	car_mesh.scale.y = major_scale;
+	car_mesh.scale.z = major_scale;
+	markerArray_msg.markers.push_back(car_mesh);
+	pub_car.publish(markerArray_msg);
+}
 /*
 void CameraPoseVisualization::add_image(const Eigen::Vector3d& T, const Eigen::Matrix3d& R, const cv::Mat &src)
 {

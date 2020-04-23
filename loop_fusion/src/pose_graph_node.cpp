@@ -71,8 +71,21 @@ CameraPoseVisualization cameraposevisual(1, 0, 0, 1);
 Eigen::Vector3d last_t(-100, -100, -100);
 double last_image_time = -1;
 
-ros::Publisher pub_point_cloud, pub_margin_cloud, g_pub_base_point_cloud;
+ros::Publisher pub_point_cloud, pub_margin_cloud, g_pub_base_point_cloud, g_pub_car;
 
+//std::string conert_angle(Eigen::Matrix3d &rotation_matrix){
+//
+//}
+void print_angles(Eigen::Vector3d t, Eigen::Quaterniond &q, double timestamp = 0){
+	Eigen::Matrix3d rotation_matrix(q);
+	Eigen::Vector3d euler_angles = rotation_matrix.eulerAngles ( 2,1,0 ); // ZYX顺序，即roll pitch yaw顺序
+	euler_angles = euler_angles /3.14 * 180;
+	cout.setf(ios::fixed);
+	std::cout<<setprecision(6)<<"time="<<timestamp;
+	std::cout<<",t="<<t.transpose()<<",";
+	std::cout<<"yaw pitch roll = "<<euler_angles.transpose()<<", quatennion=";
+	std::cout<<q.w()<<","<<q.x()<<","<<q.y()<<","<<q.z()<<endl;
+}
 void new_sequence()
 {
     printf("new sequence\n");
@@ -220,11 +233,14 @@ void vio_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
     Vector3d vio_t_cam;
     Quaterniond vio_q_cam;
     vio_t_cam = vio_t + vio_q * tic;
-    vio_q_cam = vio_q * qic;        
+    vio_q_cam = vio_q * qic;
+//    cout<<"voi_cb="<<"w="
+    cameraposevisual.publish_car(g_pub_car, pose_msg->header.stamp.toSec(), vio_t, vio_q);
+    print_angles(vio_t, vio_q, pose_msg->header.stamp.toSec());
 
-    cameraposevisual.reset();
-    cameraposevisual.add_pose(vio_t_cam, vio_q_cam);
-    cameraposevisual.publish_by(pub_camera_pose_visual, pose_msg->header);
+//    cameraposevisual.reset();
+//    cameraposevisual.add_pose(vio_t_cam, vio_q_cam);
+//    cameraposevisual.publish_by(pub_camera_pose_visual, pose_msg->header);
 
 
 }
@@ -490,6 +506,16 @@ int main(int argc, char **argv)
     pub_point_cloud = n.advertise<sensor_msgs::PointCloud>("point_cloud_loop_rect", 1000);
     pub_margin_cloud = n.advertise<sensor_msgs::PointCloud>("margin_cloud_loop_rect", 1000);
     pub_odometry_rect = n.advertise<nav_msgs::Odometry>("odometry_rect", 1000);
+
+	g_pub_car = n.advertise<visualization_msgs::MarkerArray>("ego_car", 1000, true);
+	Eigen::Vector3d vio_t_cam{0,0,0};
+	Eigen::Quaterniond vio_q_cam(1,0,0,0);
+	double t = ros::Time::now().toSec();
+	cameraposevisual.publish_car(g_pub_car, t, vio_t_cam, vio_q_cam);
+	print_angles(vio_t_cam, vio_q_cam);
+
+
+
 
     std::thread measurement_process;
     std::thread keyboard_command_process;

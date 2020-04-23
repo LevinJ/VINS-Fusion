@@ -39,7 +39,7 @@ void PoseGraph::registerPub(ros::NodeHandle &n)
     pub_pg_path = n.advertise<nav_msgs::Path>("pose_graph_path", 1000, true);
     pub_base_path = n.advertise<nav_msgs::Path>("base_path", 1000, true);
     pub_pose_graph = n.advertise<visualization_msgs::MarkerArray>("pose_graph", 1000, true);
-    pub_marker = n.advertise<visualization_msgs::Marker>("fixed_marker", 1000, true);
+    pub_marker = n.advertise<visualization_msgs::Marker>("parking_lot", 1000, true);
     for (int i = 1; i < 10; i++)
         pub_path[i] = n.advertise<nav_msgs::Path>("path_" + to_string(i), 1000);
 }
@@ -1111,7 +1111,7 @@ void PoseGraph::loadPoseGraph()
     CloudPointMap cpm;
     cpm.loadPointCloud();
     cpm.publish_cloudponint(g_pub_base_point_cloud);
-    const Eigen::Vector3d p(-70.036100, 50.243542, -0.357420 );
+    const Eigen::Vector3d p(-50.000050, 47.121850, -0.447636 );
     posegraph_visualization->publish_parking_lot(pub_marker, 180.0/180 * M_PI, p);
     printf("load pose graph time: %f s\n", tmp_t.toc()/1000);
     base_sequence = 0;

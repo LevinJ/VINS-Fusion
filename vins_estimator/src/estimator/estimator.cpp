@@ -1064,6 +1064,9 @@ static double get_median(vector<double> v)
     return v[n];
 }
 static string print_str(std::vector<double> const &a) {
+	if(a.size()< 3){
+		return "";
+	}
 
 	std::stringstream ss;
 	ss<<a.size()<<",";
