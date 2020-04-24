@@ -233,6 +233,8 @@ void CameraPoseVisualization::publish_image_by( ros::Publisher &pub, const std_m
     pub.publish(image);
 }
 void CameraPoseVisualization::publish_parking_lot(ros::Publisher &marker_pub,double yaw){
+	visualization_msgs::MarkerArray markerArray_msg;
+
 	visualization_msgs::Marker line_strip;
 	line_strip.header.frame_id = "world";
 	line_strip.header.stamp = ros::Time::now();
@@ -253,7 +255,7 @@ void CameraPoseVisualization::publish_parking_lot(ros::Publisher &marker_pub,dou
 	line_strip.scale.x = 0.1;
 
 	// Line strip is blue
-	line_strip.color.r = 1.0;
+	line_strip.color.b = 1.0;
 	line_strip.color.a = 1.0;
 
 	geometry_msgs::Point p1,p2,p3,p4;
@@ -276,7 +278,42 @@ void CameraPoseVisualization::publish_parking_lot(ros::Publisher &marker_pub,dou
 	line_strip.points.push_back(p2);
 	line_strip.points.push_back(p3);
 	line_strip.points.push_back(p4);
-	marker_pub.publish(line_strip);
+
+	//add parking lot text
+	visualization_msgs::Marker parking_text_marker;
+	parking_text_marker.header.frame_id = "world";
+	parking_text_marker.header.stamp = ros::Time::now();
+	parking_text_marker.ns = "parking_lot_postion";
+	parking_text_marker.id = 0;
+	parking_text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+	parking_text_marker.action = visualization_msgs::Marker::ADD;
+
+	parking_text_marker.pose.position.x = p2.x + 3;
+	parking_text_marker.pose.position.y = p2.y-10;
+	parking_text_marker.pose.position.z = p2.z;
+	parking_text_marker.pose.orientation.x = 0.0;
+	parking_text_marker.pose.orientation.y = 0.0;
+	parking_text_marker.pose.orientation.z = 0.0;
+	parking_text_marker.pose.orientation.w = 1.0;
+
+//	std::stringstream ss;
+//	ss.setf(std::ios::fixed);
+//	ss<<std::setprecision(2)<<"Parking lot position"<< rel_pos.norm()<<"m, Pose= "<< rel_pos.transpose();
+	parking_text_marker.text = "Parking lot";
+
+	const double text_scale = 5;
+	parking_text_marker.scale.x = text_scale;
+	parking_text_marker.scale.y = text_scale;
+	parking_text_marker.scale.z = text_scale;
+
+	parking_text_marker.color.r = 0.0f;
+	parking_text_marker.color.g = 0.0f;
+	parking_text_marker.color.b = 1.0f;
+	parking_text_marker.color.a = 1.0;
+
+	markerArray_msg.markers.push_back(parking_text_marker);
+	markerArray_msg.markers.push_back(line_strip);
+	marker_pub.publish(markerArray_msg);
 }
 
 void CameraPoseVisualization::publish_car(ros::Publisher &pub_car,double t, Eigen::Vector3d t_w_car, Eigen::Quaterniond q_w_car){
@@ -343,8 +380,8 @@ void CameraPoseVisualization::publish_car(ros::Publisher &pub_car,double t, Eige
 	car_pos_marker.scale.y = text_scale;
 	car_pos_marker.scale.z = text_scale;
 
-	car_pos_marker.color.r = 0.0f;
-	car_pos_marker.color.g = 1.0f;
+	car_pos_marker.color.r = 1.0f;
+	car_pos_marker.color.g = 0.0f;
 	car_pos_marker.color.b = 0.0f;
 	car_pos_marker.color.a = 1.0;
 	markerArray_msg.markers.push_back(car_pos_marker);

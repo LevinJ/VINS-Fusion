@@ -39,7 +39,7 @@ void PoseGraph::registerPub(ros::NodeHandle &n)
     pub_pg_path = n.advertise<nav_msgs::Path>("pose_graph_path", 1000, true);
     pub_base_path = n.advertise<nav_msgs::Path>("base_path", 1000, true);
     pub_pose_graph = n.advertise<visualization_msgs::MarkerArray>("pose_graph", 1000, true);
-    pub_marker = n.advertise<visualization_msgs::Marker>("parking_lot", 1000, true);
+    pub_marker = n.advertise<visualization_msgs::MarkerArray>("parking_lot", 1000, true);
     for (int i = 1; i < 10; i++)
         pub_path[i] = n.advertise<nav_msgs::Path>("path_" + to_string(i), 1000);
 }
@@ -136,13 +136,14 @@ void PoseGraph::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
             shift_t = w_P_cur - w_R_cur * vio_R_cur.transpose() * vio_P_cur; 
             // shift vio pose of whole sequence to the world frame
             if (old_kf->sequence != cur_kf->sequence && sequence_loop[cur_kf->sequence] == 0)
-            {  
+            {
                 w_r_vio = shift_r;
                 w_t_vio = shift_t;
                 vio_P_cur = w_r_vio * vio_P_cur + w_t_vio;
                 vio_R_cur = w_r_vio *  vio_R_cur;
                 cur_kf->updateVioPose(vio_P_cur, vio_R_cur);
                 list<KeyFrame*>::iterator it = keyframelist.begin();
+                cout<<"change seq relpose, cur_time="<<cur_kf->time_stamp<<", old_time="<<old_kf->time_stamp<<", w_t_vio="<<w_t_vio.transpose()<<endl;
                 for (; it != keyframelist.end(); it++)   
                 {
                     if((*it)->sequence == cur_kf->sequence)
@@ -166,6 +167,7 @@ void PoseGraph::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
     Vector3d P;
     Matrix3d R;
     cur_kf->getVioPose(P, R);
+    cout<<"time="<<cur_kf->time_stamp<<", w_t_vio="<<w_t_vio.transpose()<<", t_drift="<<t_drift.transpose()<<endl;
     P = r_drift * P + t_drift;
     R = r_drift * R;
     cur_kf->updatePose(P, R);
@@ -1111,7 +1113,7 @@ void PoseGraph::loadPoseGraph()
     CloudPointMap cpm;
     cpm.loadPointCloud();
     cpm.publish_cloudponint(g_pub_base_point_cloud);
-    posegraph_visualization->publish_parking_lot(pub_marker, 180.0/180 * M_PI);
+    posegraph_visualization->publish_parking_lot(pub_marker, 173.0/180 * M_PI);
     printf("load pose graph time: %f s\n", tmp_t.toc()/1000);
     base_sequence = 0;
 }

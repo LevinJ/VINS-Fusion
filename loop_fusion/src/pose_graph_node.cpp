@@ -235,8 +235,12 @@ void vio_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
     vio_t_cam = vio_t + vio_q * tic;
     vio_q_cam = vio_q * qic;
 //    cout<<"voi_cb="<<"w="
-    cameraposevisual.publish_car(g_pub_car, pose_msg->header.stamp.toSec(), vio_t, vio_q);
+
     print_angles(vio_t, vio_q, pose_msg->header.stamp.toSec());
+    if(pose_msg->header.stamp.toSec() > 1576825216){
+    	cameraposevisual.publish_car(g_pub_car, pose_msg->header.stamp.toSec(), vio_t, vio_q);
+    }
+
 
 //    cameraposevisual.reset();
 //    cameraposevisual.add_pose(vio_t_cam, vio_q_cam);
@@ -511,8 +515,8 @@ int main(int argc, char **argv)
 	Eigen::Vector3d vio_t_cam{0,0,0};
 	Eigen::Quaterniond vio_q_cam(1,0,0,0);
 	double t = ros::Time::now().toSec();
-	cameraposevisual.publish_car(g_pub_car, t, vio_t_cam, vio_q_cam);
-	print_angles(vio_t_cam, vio_q_cam);
+//	cameraposevisual.publish_car(g_pub_car, t, vio_t_cam, vio_q_cam);
+//	print_angles(vio_t_cam, vio_q_cam);
 
 
 
