@@ -10,7 +10,16 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  message_generation
 )
+ add_message_files(
+   FILES
+   Num.msg
+ )
+ generate_messages(
+   DEPENDENCIES
+   std_msgs
+ )
 
 find_package(Ceres REQUIRED)
 
@@ -28,6 +37,7 @@ catkin_package()
 
 add_executable(global_fusion_node 
 	src/globalOptNode.cpp
-	src/globalOpt.cpp)
+	src/globalOpt.cpp
+	src/utility/utility.cpp)
 
 target_link_libraries(global_fusion_node ${catkin_LIBRARIES} ${CERES_LIBRARIES} libGeographiccc) 

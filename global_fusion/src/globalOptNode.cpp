@@ -23,6 +23,9 @@
 #include <fstream>
 #include <queue>
 #include <mutex>
+#include "robot_localization/GetState.h"
+#include "./utility/utility.h"
+#include "./utility/tic_toc.h"
 
 GlobalOptimization globalEstimator;
 ros::Publisher pub_global_odometry, pub_global_path, pub_car;
@@ -30,6 +33,9 @@ nav_msgs::Path *global_path;
 double last_vio_t = -1;
 std::queue<sensor_msgs::NavSatFixConstPtr> gpsQueue;
 std::mutex m_buf;
+
+static ros::ServiceClient g_client;
+static std::string VINS_RESULT_PATH = "/home/levin/output/vio_global.csv";
 
 void publish_car_model(double t, Eigen::Vector3d t_w_car, Eigen::Quaterniond q_w_car)
 {
@@ -80,6 +86,7 @@ void GPS_callback(const sensor_msgs::NavSatFixConstPtr &GPS_msg)
 
 void vio_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
 {
+	return;
     //printf("vio_callback! \n");
     double t = pose_msg->header.stamp.toSec();
     last_vio_t = t;
@@ -143,7 +150,7 @@ void vio_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
 
 
     // write result to file
-    std::ofstream foutC("/home/tony-ws1/output/vio_global.csv", ios::app);
+    std::ofstream foutC("/home/levin/output/vio_global.csv", ios::app);
     foutC.setf(ios::fixed, ios::floatfield);
     foutC.precision(0);
     foutC << pose_msg->header.stamp.toSec() * 1e9 << ",";
@@ -151,22 +158,91 @@ void vio_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
     foutC << global_t.x() << ","
             << global_t.y() << ","
             << global_t.z() << ","
-            << global_q.w() << ","
             << global_q.x() << ","
             << global_q.y() << ","
-            << global_q.z() << endl;
+            << global_q.z() << ","
+			<< global_q.w() << endl;
     foutC.close();
+}
+
+void pose_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
+{
+	double t = pose_msg->header.stamp.toSec();
+	robot_localization::GetState srv;
+	srv.request.frame_id = "base_link";
+	srv.request.time_stamp = ros::Time(t);
+	TicToc getstate_time;
+	bool bsuccess = g_client.call(srv);
+
+	if (!bsuccess){
+		ROS_ERROR("Failed to call service robot_localization::GetState");
+		return;
+	}
+
+	auto &res = srv.response.state;
+	int ind = 0;
+	double x = res[ind++];
+	double y = res[ind++];
+	double z = res[ind++];
+
+	double r = res[ind++];
+	double p = res[ind++];
+	double yaw = res[ind++];
+
+	double x_dot = res[ind++];
+	double y_dot = res[ind++];
+	double z_dot = res[ind++];
+
+	double r_dot = res[ind++];
+	double p_dot = res[ind++];
+	double yaw_dot = res[ind++];
+
+	double x_dot_dot = res[ind++];
+	double y_dot_dot = res[ind++];
+	double z_dot_dot = res[ind++];
+
+	yaw *= 180.0/M_PI;
+	p *= 180.0/M_PI;
+	r *= 180.0/M_PI;
+	auto rotation_vector = Utility::ypr2R(Eigen::Vector3d{yaw, p, r});
+	Eigen::Quaterniond global_q = Eigen::Quaterniond ( rotation_vector );
+
+	std::cout<<"Time"<<getstate_time.toc() <<",";
+
+	// write result to file
+	std::ofstream foutC(VINS_RESULT_PATH, ios::app);
+	foutC.setf(ios::fixed, ios::floatfield);
+	foutC.precision(6);
+	foutC << t << " ";
+
+	foutC << x << " "
+			<< y << " "
+			<< z << " "
+			<< global_q.x() << " "
+			<< global_q.y() << " "
+			<< global_q.z() << " "
+			<< global_q.w() << endl;
+
+	foutC.close();
+	printf("time: %f, t: %f %f %f, vxyz: %f %f %f, ypr: %f %f %f \n", t, x, y, z,
+			x_dot, y_dot, z_dot, yaw, p,r);
 }
 
 int main(int argc, char **argv)
 {
+	std::ofstream fout(VINS_RESULT_PATH, std::ios::out);
+	fout.close();
     ros::init(argc, argv, "globalEstimator");
     ros::NodeHandle n("~");
+    ros::NodeHandle n_global;
+
+    g_client = n_global.serviceClient<robot_localization::GetState>("get_state");
 
     global_path = &globalEstimator.global_path;
 
     ros::Subscriber sub_GPS = n.subscribe("/gps", 100, GPS_callback);
     ros::Subscriber sub_vio = n.subscribe("/vins_estimator/odometry", 100, vio_callback);
+    ros::Subscriber sub_pose = n.subscribe("/vins_estimator/keyframe_pose", 2000, pose_callback);
     pub_global_path = n.advertise<nav_msgs::Path>("global_path", 100);
     pub_global_odometry = n.advertise<nav_msgs::Odometry>("global_odometry", 100);
     pub_car = n.advertise<visualization_msgs::MarkerArray>("car_model", 1000);
