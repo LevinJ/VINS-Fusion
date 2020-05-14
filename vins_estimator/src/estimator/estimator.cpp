@@ -1128,7 +1128,7 @@ void Estimator::optimization()
         problem.AddResidualBlock(marginalization_factor, NULL,
                                  last_marginalization_parameter_blocks);
         residual_sum = compute_residuals(marginalization_factor, NULL, last_marginalization_parameter_blocks.data());
-        cout<<"margin_sum="<<residual_sum<<std::endl;
+//        cout<<"margin_sum="<<residual_sum<<std::endl;
     }
     if(USE_IMU)
     {
@@ -1193,7 +1193,7 @@ void Estimator::optimization()
 
         }
     }
-    cout<<"vison_sum="<<std::accumulate(residual_sum.begin(), residual_sum.end(), 0.0)<<",list="<<print_str(residual_sum)<<endl;
+//    cout<<"vison_sum="<<std::accumulate(residual_sum.begin(), residual_sum.end(), 0.0)<<",list="<<print_str(residual_sum)<<endl;
     ROS_DEBUG("visual measurement count: %d", f_m_cnt);
     //printf("prepare for ceres: %f \n", t_prepare.toc());
 

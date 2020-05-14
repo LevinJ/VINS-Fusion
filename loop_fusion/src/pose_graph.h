@@ -69,6 +69,7 @@ public:
 
 
 protected:
+	void getGNSSPose(double t, Eigen::Vector3d &_T_w_i, Eigen::Matrix3d &_R_w_i);
 	int detectLoop(KeyFrame* keyframe, int frame_index);
 	void addKeyFrameIntoVoc(KeyFrame* keyframe);
 	void optimize4DoF();

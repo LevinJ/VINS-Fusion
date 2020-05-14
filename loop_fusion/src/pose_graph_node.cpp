@@ -32,7 +32,8 @@
 #include "pose_graph.h"
 #include "utility/CameraPoseVisualization.h"
 #include "parameters.h"
-#define SKIP_FIRST_CNT 10
+#include "robot_localization/GetState.h"
+#define SKIP_FIRST_CNT 0
 using namespace std;
 
 queue<sensor_msgs::ImageConstPtr> image_buf;
@@ -67,11 +68,13 @@ ros::Publisher pub_odometry_rect;
 std::string BRIEF_PATTERN_FILE;
 std::string POSE_GRAPH_SAVE_PATH;
 std::string VINS_RESULT_PATH;
+int FUSE_GNSS;
 CameraPoseVisualization cameraposevisual(1, 0, 0, 1);
 Eigen::Vector3d last_t(-100, -100, -100);
 double last_image_time = -1;
 
 ros::Publisher pub_point_cloud, pub_margin_cloud, g_pub_base_point_cloud, g_pub_car;
+ros::ServiceClient g_client;
 
 //std::string conert_angle(Eigen::Matrix3d &rotation_matrix){
 //
@@ -187,6 +190,7 @@ void margin_point_callback(const sensor_msgs::PointCloudConstPtr &point_msg)
 
 void pose_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
 {
+//	std::cout<< std::fixed << std::setprecision(6)<<"pose_callback ="<<pose_msg->header.stamp.toSec()<<endl;
     //ROS_INFO("pose_callback!");
     m_buf.lock();
     pose_buf.push(pose_msg);
@@ -236,7 +240,7 @@ void vio_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
     vio_q_cam = vio_q * qic;
 //    cout<<"voi_cb="<<"w="
 
-    print_angles(vio_t, vio_q, pose_msg->header.stamp.toSec());
+//    print_angles(vio_t, vio_q, pose_msg->header.stamp.toSec());
     if(pose_msg->header.stamp.toSec() > 1576825216){
     	cameraposevisual.publish_car(g_pub_car, pose_msg->header.stamp.toSec(), vio_t, vio_q);
     }
@@ -423,6 +427,9 @@ int main(int argc, char **argv)
     ros::NodeHandle n("~");
     posegraph.registerPub(n);
     
+    ros::NodeHandle n_global;
+    g_client = n_global.serviceClient<robot_localization::GetState>("get_state");
+
     VISUALIZATION_SHIFT_X = 0;
     VISUALIZATION_SHIFT_Y = 0;
     SKIP_CNT = 0;
@@ -475,6 +482,7 @@ int main(int argc, char **argv)
     fsSettings["save_image"] >> DEBUG_IMAGE;
 
     LOAD_PREVIOUS_POSE_GRAPH = fsSettings["load_previous_pose_graph"];
+    FUSE_GNSS = fsSettings["fuse_gnss"];
     VINS_RESULT_PATH = VINS_RESULT_PATH + "/vio_loop.csv";
     std::ofstream fout(VINS_RESULT_PATH, std::ios::out);
     fout.close();
@@ -512,9 +520,9 @@ int main(int argc, char **argv)
     pub_odometry_rect = n.advertise<nav_msgs::Odometry>("odometry_rect", 1000);
 
 	g_pub_car = n.advertise<visualization_msgs::MarkerArray>("ego_car", 1000, true);
-	Eigen::Vector3d vio_t_cam{0,0,0};
-	Eigen::Quaterniond vio_q_cam(1,0,0,0);
-	double t = ros::Time::now().toSec();
+//	Eigen::Vector3d vio_t_cam{0,0,0};
+//	Eigen::Quaterniond vio_q_cam(1,0,0,0);
+//	double t = ros::Time::now().toSec();
 //	cameraposevisual.publish_car(g_pub_car, t, vio_t_cam, vio_q_cam);
 //	print_angles(vio_t_cam, vio_q_cam);
 

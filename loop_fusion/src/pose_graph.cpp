@@ -11,6 +11,9 @@
 
 #include "pose_graph.h"
 #include "CloudPointMap.h"
+#include "robot_localization/GetState.h"
+#include "./utility/utility.h"
+#include "./utility/tic_toc.h"
 PoseGraph::PoseGraph()
 {
     posegraph_visualization = new CameraPoseVisualization(1.0, 0.0, 1.0, 1.0);
@@ -65,9 +68,64 @@ void PoseGraph::loadVocabulary(std::string voc_path)
     voc = new BriefVocabulary(voc_path);
     db.setVocabulary(*voc, false, 0);
 }
+static Matrix3d getvb2gb(){
+	//compute the transform from base_link in VIO to base_link in UTM
+	Vector3d ypr;
+	ypr<<-90, 0,0;
+	static MatrixXd R;
+	static bool first_time = true;
+	if(first_time){
+		first_time = false;
+		R = Utility::ypr2R(ypr);
+	}
+	return R;
+}
+void PoseGraph::getGNSSPose(double t, Eigen::Vector3d &_T_w_i, Eigen::Matrix3d &_R_w_i){
+	extern ros::ServiceClient g_client;
+	robot_localization::GetState srv;
+	srv.request.frame_id = "base_link";
+	srv.request.time_stamp = ros::Time(t);
+	TicToc getstate_time;
+	bool bsuccess = g_client.call(srv);
 
+	if (!bsuccess){
+		ROS_ERROR("Failed to call service robot_localization::GetState");
+		return;
+	}
+
+	auto &res = srv.response.state;
+	int ind = 0;
+	double x = res[ind++];
+	double y = res[ind++];
+	double z = res[ind++];
+
+	double r = res[ind++];
+	double p = res[ind++];
+	double yaw = res[ind++];
+
+	double x_dot = res[ind++];
+	double y_dot = res[ind++];
+	double z_dot = res[ind++];
+
+	double r_dot = res[ind++];
+	double p_dot = res[ind++];
+	double yaw_dot = res[ind++];
+
+	double x_dot_dot = res[ind++];
+	double y_dot_dot = res[ind++];
+	double z_dot_dot = res[ind++];
+
+	yaw *= 180.0/M_PI;
+	p *= 180.0/M_PI;
+	r *= 180.0/M_PI;
+	_R_w_i = Utility::ypr2R(Eigen::Vector3d{yaw, p, r});
+	_R_w_i = _R_w_i * getvb2gb();
+	_T_w_i = {x, y, z};
+
+}
 void PoseGraph::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
 {
+	extern int FUSE_GNSS;
     //shift to base frame
     Vector3d vio_P_cur;
     Matrix3d vio_R_cur;
@@ -84,6 +142,21 @@ void PoseGraph::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
     }
     
     cur_kf->getVioPose(vio_P_cur, vio_R_cur);
+    if(FUSE_GNSS){
+    	flag_detect_loop = false;
+    	Vector3d vio_P_cur_gnss;
+    	Matrix3d vio_R_cur_gnss;
+    	getGNSSPose(cur_kf->time_stamp, vio_P_cur_gnss, vio_R_cur_gnss);
+    	static bool frist_time_gnss = true;
+    	if(frist_time_gnss){
+    		//here we are actually trying to obtain transfromation from global to vio frame
+    		frist_time_gnss = false;
+    		w_r_vio = vio_R_cur * vio_R_cur_gnss.transpose();
+    		w_t_vio = - vio_R_cur * vio_R_cur_gnss.transpose() * vio_P_cur_gnss + vio_P_cur;
+    	}
+    	vio_P_cur = vio_P_cur_gnss;
+    	vio_R_cur = vio_R_cur_gnss;
+    }
     vio_P_cur = w_r_vio * vio_P_cur + w_t_vio;
     vio_R_cur = w_r_vio *  vio_R_cur;
     cur_kf->updateVioPose(vio_P_cur, vio_R_cur);
