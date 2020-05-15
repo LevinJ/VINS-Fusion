@@ -1069,6 +1069,7 @@ void PoseGraph::savePoseGraph()
 }
 void PoseGraph::loadPoseGraph()
 {
+	loadParkingLot();
     TicToc tmp_t;
     FILE * pFile;
     string file_path = POSE_GRAPH_SAVE_PATH + "pose_graph.txt";
@@ -1186,9 +1187,34 @@ void PoseGraph::loadPoseGraph()
     CloudPointMap cpm;
     cpm.loadPointCloud();
     cpm.publish_cloudponint(g_pub_base_point_cloud);
-    posegraph_visualization->publish_parking_lot(pub_marker, 173.0/180 * M_PI);
+//    loadParkingLot();
     printf("load pose graph time: %f s\n", tmp_t.toc()/1000);
     base_sequence = 0;
+}
+void PoseGraph::loadParkingLot(){
+	string config_file = POSE_GRAPH_SAVE_PATH + "parking_lot_info.yaml";
+	cout<<"parking lot info file="<<config_file<<endl;
+	cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
+	if(!fsSettings.isOpened())
+	{
+		std::cerr << "ERROR: Wrong path "<<config_file << std::endl;
+		return;
+	}
+	int  num_of_parkinglot= fsSettings["num_of_parkinglot"];
+	for(int i=0; i< num_of_parkinglot; i++){
+		string tempstr;
+		tempstr = string("parkinglot") + std::to_string(i);
+		auto n = fsSettings[tempstr.c_str()];
+		auto x = static_cast<double>(n["x"]);
+		auto y = static_cast<double>(n["y"]);
+		auto z = static_cast<double>(n["z"]);
+		auto yaw = static_cast<double>(n["yaw"]);
+		auto pitch = static_cast<double>(n["pitch"]);
+		auto roll = static_cast<double>(n["roll"]);
+		extern Eigen::Vector3d g_parkinglot_1;
+		g_parkinglot_1<<x,y,z;
+		posegraph_visualization->publish_parking_lot(pub_marker, yaw/180 * M_PI);
+	}
 }
 
 void PoseGraph::publish()

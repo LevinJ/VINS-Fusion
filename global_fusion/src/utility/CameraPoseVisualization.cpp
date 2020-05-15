@@ -18,7 +18,7 @@ const Eigen::Vector3d CameraPoseVisualization::lt1 = Eigen::Vector3d(-0.7, -0.2,
 const Eigen::Vector3d CameraPoseVisualization::lt2 = Eigen::Vector3d(-1.0, -0.2, 1.0);
 const Eigen::Vector3d CameraPoseVisualization::oc = Eigen::Vector3d(0.0, 0.0, 0.0);
 
-static const Eigen::Vector3d g_parkinglot_1(-50.000050, 47.121850, -0.447636 );
+Eigen::Vector3d g_parkinglot_1(-50.000050, 47.121850, -0.447636 );
 
 void Eigen2Point(const Eigen::Vector3d& v, geometry_msgs::Point& p) {
     p.x = v.x();

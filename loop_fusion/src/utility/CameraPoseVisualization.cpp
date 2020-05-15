@@ -18,7 +18,7 @@ const Eigen::Vector3d CameraPoseVisualization::lt1 = Eigen::Vector3d(-0.7, -0.2,
 const Eigen::Vector3d CameraPoseVisualization::lt2 = Eigen::Vector3d(-1.0, -0.2, 1.0);
 const Eigen::Vector3d CameraPoseVisualization::oc = Eigen::Vector3d(0.0, 0.0, 0.0);
 
-static const Eigen::Vector3d g_parkinglot_1(-50.000050, 47.121850, -0.447636 );
+Eigen::Vector3d g_parkinglot_1(-50.000050, 47.121850, -0.447636 );
 
 void Eigen2Point(const Eigen::Vector3d& v, geometry_msgs::Point& p) {
     p.x = v.x();
@@ -264,10 +264,10 @@ void CameraPoseVisualization::publish_parking_lot(ros::Publisher &marker_pub,dou
 	int h = 8;
 	int z = 0;
 	float scale = 1;
-	const Eigen::Vector3d p1f = Eigen::Vector3d(0, 0, z);
-	const Eigen::Vector3d p2f = Eigen::Vector3d(0, h, z);
-	const Eigen::Vector3d p3f = Eigen::Vector3d(w, h, z);
-	const Eigen::Vector3d p4f = Eigen::Vector3d(w, 0, z);
+	const Eigen::Vector3d p1f = Eigen::Vector3d(-w/2, 0, z);
+	const Eigen::Vector3d p2f = Eigen::Vector3d(-w/2, h, z);
+	const Eigen::Vector3d p3f = Eigen::Vector3d(w/2, h, z);
+	const Eigen::Vector3d p4f = Eigen::Vector3d(w/2, 0, z);
 
 	Eigen2Point(q * (scale *p1f) + g_parkinglot_1, p1);
 	Eigen2Point(q * (scale *p2f) + g_parkinglot_1, p2);
