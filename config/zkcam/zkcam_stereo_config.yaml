@@ -59,5 +59,6 @@ load_previous_pose_graph: 1        # load and reuse previous pose graph; load fr
 pose_graph_save_path: "/home/levin/output/pose_graph/" # save and load path
 save_image: 1                   # save image in pose graph for visualization prupose; you can close this function by setting 0 
 fuse_gnss: 0                   # whether to fuse gnss when mapping
+raw_data_path: "/home/levin/raw_data"   # path for saveing loop detection info
 
 

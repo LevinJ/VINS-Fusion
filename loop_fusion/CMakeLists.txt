@@ -49,6 +49,7 @@ add_executable(loop_fusion_node
     src/pose_graph.cpp
     src/keyframe.cpp
     src/utility/CameraPoseVisualization.cpp
+    src/utility/LoopInfoLogging.cpp
     src/ThirdParty/DBoW/BowVector.cpp
     src/ThirdParty/DBoW/FBrief.cpp
     src/ThirdParty/DBoW/FeatureVector.cpp

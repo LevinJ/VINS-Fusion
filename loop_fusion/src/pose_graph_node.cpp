@@ -33,6 +33,7 @@
 #include "utility/CameraPoseVisualization.h"
 #include "parameters.h"
 #include "robot_localization/GetState.h"
+#include "utility/LoopInfoLogging.h"
 #define SKIP_FIRST_CNT 0
 using namespace std;
 
@@ -68,6 +69,7 @@ ros::Publisher pub_odometry_rect;
 std::string BRIEF_PATTERN_FILE;
 std::string POSE_GRAPH_SAVE_PATH;
 std::string VINS_RESULT_PATH;
+std::string RAW_DATA_PATH;
 int FUSE_GNSS;
 CameraPoseVisualization cameraposevisual(1, 0, 0, 1);
 Eigen::Vector3d last_t(-100, -100, -100);
@@ -75,6 +77,7 @@ double last_image_time = -1;
 
 ros::Publisher pub_point_cloud, pub_margin_cloud, g_pub_base_point_cloud, g_pub_car;
 ros::ServiceClient g_client;
+LoopInfoLogging g_loop_info_logging;
 
 //std::string conert_angle(Eigen::Matrix3d &rotation_matrix){
 //
@@ -480,6 +483,7 @@ int main(int argc, char **argv)
     fsSettings["pose_graph_save_path"] >> POSE_GRAPH_SAVE_PATH;
     fsSettings["output_path"] >> VINS_RESULT_PATH;
     fsSettings["save_image"] >> DEBUG_IMAGE;
+    fsSettings["raw_data_path"] >> RAW_DATA_PATH;
 
     LOAD_PREVIOUS_POSE_GRAPH = fsSettings["load_previous_pose_graph"];
     FUSE_GNSS = fsSettings["fuse_gnss"];
@@ -520,6 +524,7 @@ int main(int argc, char **argv)
     pub_odometry_rect = n.advertise<nav_msgs::Odometry>("odometry_rect", 1000);
 
 	g_pub_car = n.advertise<visualization_msgs::MarkerArray>("ego_car", 1000, true);
+	g_loop_info_logging.init();
 //	Eigen::Vector3d vio_t_cam{0,0,0};
 //	Eigen::Quaterniond vio_q_cam(1,0,0,0);
 //	double t = ros::Time::now().toSec();

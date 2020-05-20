@@ -10,6 +10,10 @@
  *******************************************************/
 
 #include "keyframe.h"
+#include "utility/LoopInfoLogging.h"
+#include "parameters.h"
+
+extern LoopInfoLogging g_loop_info_logging;
 
 template <typename Derived>
 static void reduceVector(vector<Derived> &v, vector<uchar> status)
@@ -414,6 +418,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	Eigen::Vector3d relative_t;
 	Quaterniond relative_q;
 	double relative_yaw;
+	ostringstream path;
 	if ((int)matched_2d_cur.size() > MIN_LOOP_NUM)
 	{
 		status.clear();
@@ -458,7 +463,6 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	            cv::vconcat(notation, loop_match_img, loop_match_img);
 
 
-	            ostringstream path;
 	            path <<  "/home/levin/raw_data/loop_image/"
 	                    << index << "-"
 	                    << old_kf->index << "-" << "3pnp_match.jpg";
@@ -497,6 +501,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	    	             relative_q.w(), relative_q.x(), relative_q.y(), relative_q.z(),
 	    	             relative_yaw;
 	    	cout << "valid loop detected, " <<sequence<<", "<< index<< "-->"<< old_kf->sequence<<", "<<old_kf->index<< endl;
+	    	g_loop_info_logging.append_loopinfo(this->time_stamp, old_kf->time_stamp, path.str(), loop_info);
 	    	//cout << "pnp relative_t " << relative_t.transpose() << endl;
 	    	//cout << "pnp relative_q " << relative_q.w() << " " << relative_q.vec().transpose() << endl;
 	        return true;
