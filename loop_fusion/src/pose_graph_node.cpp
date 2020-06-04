@@ -34,6 +34,7 @@
 #include "parameters.h"
 #include "robot_localization/GetState.h"
 #include "utility/LoopInfoLogging.h"
+#include "loop_fusion/FindConnectionInfo.h"
 #define SKIP_FIRST_CNT 0
 using namespace std;
 
@@ -65,6 +66,8 @@ Eigen::Matrix3d qic;
 ros::Publisher pub_match_img;
 ros::Publisher pub_camera_pose_visual;
 ros::Publisher pub_odometry_rect;
+
+ros::Publisher pub_findconnectioninfo_img;
 
 std::string BRIEF_PATTERN_FILE;
 std::string POSE_GRAPH_SAVE_PATH;
@@ -522,6 +525,8 @@ int main(int argc, char **argv)
     pub_point_cloud = n.advertise<sensor_msgs::PointCloud>("point_cloud_loop_rect", 1000);
     pub_margin_cloud = n.advertise<sensor_msgs::PointCloud>("margin_cloud_loop_rect", 1000);
     pub_odometry_rect = n.advertise<nav_msgs::Odometry>("odometry_rect", 1000);
+
+    pub_findconnectioninfo_img = n.advertise<loop_fusion::FindConnectionInfo>("findconnectioninfo", 1000);
 
 	g_pub_car = n.advertise<visualization_msgs::MarkerArray>("ego_car", 1000, true);
 	g_loop_info_logging.init();

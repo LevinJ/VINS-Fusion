@@ -25,11 +25,15 @@ find_package(catkin REQUIRED COMPONENTS
     )
  add_message_files(
    FILES
-   Num.msg
+   PointUV.msg
+   FindConnectionInfo.msg 
  )
  generate_messages(
    DEPENDENCIES
+   geometry_msgs
    std_msgs
+   nav_msgs
+   
  )
 find_package(OpenCV)
 
@@ -41,7 +45,9 @@ find_package(Eigen3)
 
 include_directories(${catkin_INCLUDE_DIRS} ${CERES_INCLUDE_DIRS}  ${EIGEN3_INCLUDE_DIR} ${PCL_INCLUDE_DIRS})
 
-catkin_package()
+catkin_package(
+ CATKIN_DEPENDS message_runtime
+)
 
 
 add_executable(loop_fusion_node

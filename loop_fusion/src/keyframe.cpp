@@ -12,8 +12,34 @@
 #include "keyframe.h"
 #include "utility/LoopInfoLogging.h"
 #include "parameters.h"
+#include "loop_fusion/FindConnectionInfo.h"
+#include "loop_fusion/PointUV.h"
 
 extern LoopInfoLogging g_loop_info_logging;
+extern ros::Publisher pub_findconnectioninfo_img;
+
+static loop_fusion::PointUV gen_uv(cv::Point2f &pnt){
+	loop_fusion::PointUV uv;
+	uv.u = pnt.x;
+	uv.v = pnt.y;
+	return uv;
+
+}
+
+static geometry_msgs::Pose gen_pose(Eigen::Matrix<double, 8, 1 > &loop_info){
+	geometry_msgs::Pose pose;
+
+	pose.position.x = loop_info[0];
+	pose.position.y = loop_info[1];
+	pose.position.z = loop_info[2];
+
+	pose.orientation.w = loop_info[3];
+	pose.orientation.x = loop_info[4];
+	pose.orientation.y = loop_info[5];
+	pose.orientation.z = loop_info[6];
+	return pose;
+
+}
 
 template <typename Derived>
 static void reduceVector(vector<Derived> &v, vector<uchar> status)
@@ -273,6 +299,7 @@ void KeyFrame::PnPRANSAC(const vector<cv::Point2f> &matched_2d_old_norm,
 
 bool KeyFrame::findConnection(KeyFrame* old_kf)
 {
+	loop_fusion::FindConnectionInfo find_conn_info;
 	TicToc tmp_t;
 	//printf("find Connection\n");
 	vector<cv::Point2f> matched_2d_cur, matched_2d_old;
@@ -297,11 +324,13 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	        for(int i = 0; i< (int)point_2d_uv.size(); i++)
 	        {
 	            cv::Point2f cur_pt = point_2d_uv[i];
+	            find_conn_info.step0_cur_ponits.push_back(gen_uv(cur_pt));
 	            cv::circle(loop_match_img, cur_pt, 5, cv::Scalar(0, 255, 0));
 	        }
 	        for(int i = 0; i< (int)old_kf->keypoints.size(); i++)
 	        {
 	            cv::Point2f old_pt = old_kf->keypoints[i].pt;
+	            find_conn_info.step0_old_ponits.push_back(gen_uv(old_pt));
 	            old_pt.x += COL;
 	            cv::circle(loop_match_img, old_pt, 5, cv::Scalar(0, 255, 0));
 	        }
@@ -335,11 +364,13 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	        for(int i = 0; i< (int)matched_2d_cur.size(); i++)
 	        {
 	            cv::Point2f cur_pt = matched_2d_cur[i];
+	            find_conn_info.step1_cur_ponits.push_back(gen_uv(cur_pt));
 	            cv::circle(loop_match_img, cur_pt, 5, cv::Scalar(0, 255, 0));
 	        }
 	        for(int i = 0; i< (int)matched_2d_old.size(); i++)
 	        {
 	            cv::Point2f old_pt = matched_2d_old[i];
+	            find_conn_info.step1_old_ponits.push_back(gen_uv(old_pt));
 	            old_pt.x += (COL + gap);
 	            cv::circle(loop_match_img, old_pt, 5, cv::Scalar(0, 255, 0));
 	        }
@@ -442,11 +473,13 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	            for(int i = 0; i< (int)matched_2d_cur.size(); i++)
 	            {
 	                cv::Point2f cur_pt = matched_2d_cur[i];
+	                find_conn_info.step3_cur_ponits.push_back(gen_uv(cur_pt));
 	                cv::circle(loop_match_img, cur_pt, 5, cv::Scalar(0, 255, 0));
 	            }
 	            for(int i = 0; i< (int)matched_2d_old.size(); i++)
 	            {
 	                cv::Point2f old_pt = matched_2d_old[i];
+	                find_conn_info.step3_old_ponits.push_back(gen_uv(old_pt));
 	                old_pt.x += (COL + gap);
 	                cv::circle(loop_match_img, old_pt, 5, cv::Scalar(0, 255, 0));
 	            }
@@ -502,6 +535,11 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	    	             relative_yaw;
 	    	cout << "valid loop detected, " <<sequence<<", "<< index<< "-->"<< old_kf->sequence<<", "<<old_kf->index<< endl;
 	    	g_loop_info_logging.append_loopinfo(this->time_stamp, old_kf->time_stamp, path.str(), loop_info);
+	    	find_conn_info.matched_file_name = path.str();
+	    	find_conn_info.cur_time.fromSec(this->time_stamp);
+	    	find_conn_info.old_time.fromSec(old_kf->time_stamp);
+	    	find_conn_info.rel_pose = gen_pose(loop_info);
+	    	pub_findconnectioninfo_img.publish(find_conn_info);
 	    	//cout << "pnp relative_t " << relative_t.transpose() << endl;
 	    	//cout << "pnp relative_q " << relative_q.w() << " " << relative_q.vec().transpose() << endl;
 	        return true;
