@@ -33,6 +33,7 @@ find_package(catkin REQUIRED COMPONENTS
    geometry_msgs
    std_msgs
    nav_msgs
+   sensor_msgs
    
  )
 find_package(OpenCV)

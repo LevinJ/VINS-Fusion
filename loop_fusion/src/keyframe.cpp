@@ -539,6 +539,8 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	    	find_conn_info.cur_time.fromSec(this->time_stamp);
 	    	find_conn_info.old_time.fromSec(old_kf->time_stamp);
 	    	find_conn_info.rel_pose = gen_pose(loop_info);
+	    	find_conn_info.cur_image = *(cv_bridge::CvImage(std_msgs::Header(), "bgr8", this->image).toImageMsg());
+	    	find_conn_info.old_image = *(cv_bridge::CvImage(std_msgs::Header(), "bgr8", old_kf->image).toImageMsg());
 	    	pub_findconnectioninfo_img.publish(find_conn_info);
 	    	//cout << "pnp relative_t " << relative_t.transpose() << endl;
 	    	//cout << "pnp relative_q " << relative_q.w() << " " << relative_q.vec().transpose() << endl;
