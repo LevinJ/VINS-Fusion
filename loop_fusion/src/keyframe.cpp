@@ -26,6 +26,15 @@ static loop_fusion::PointUV gen_uv(cv::Point2f &pnt){
 
 }
 
+static geometry_msgs::Point32 gen_3dpnt(cv::Point3f &pnt){
+	geometry_msgs::Point32 p;
+	p.x = pnt.x;
+	p.y = pnt.y;
+	p.z = pnt.z;
+	return p;
+
+}
+
 static geometry_msgs::Pose gen_pose(Eigen::Matrix<double, 8, 1 > &loop_info){
 	geometry_msgs::Pose pose;
 
@@ -39,6 +48,14 @@ static geometry_msgs::Pose gen_pose(Eigen::Matrix<double, 8, 1 > &loop_info){
 	pose.orientation.z = loop_info[6];
 	return pose;
 
+}
+
+static geometry_msgs::Pose gen_posefromRT(Eigen::Matrix3d &R, Eigen::Vector3d &t){
+	Eigen::Matrix<double, 8, 1 > pose;
+	Quaterniond q(R);
+	pose <<t.x(), t.y(), t.z(),
+			q.w(), q.x(), q.y(), q.z(),0;
+	return gen_pose(pose);
 }
 
 template <typename Derived>
@@ -325,6 +342,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	        {
 	            cv::Point2f cur_pt = point_2d_uv[i];
 	            find_conn_info.step0_cur_ponits.push_back(gen_uv(cur_pt));
+	            find_conn_info.step0_3dpoints.push_back(gen_3dpnt(matched_3d[i]));
 	            cv::circle(loop_match_img, cur_pt, 5, cv::Scalar(0, 255, 0));
 	        }
 	        for(int i = 0; i< (int)old_kf->keypoints.size(); i++)
@@ -364,6 +382,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	        for(int i = 0; i< (int)matched_2d_cur.size(); i++)
 	        {
 	            cv::Point2f cur_pt = matched_2d_cur[i];
+	            find_conn_info.step1_3dpoints.push_back(gen_3dpnt(matched_3d[i]));
 	            find_conn_info.step1_cur_ponits.push_back(gen_uv(cur_pt));
 	            cv::circle(loop_match_img, cur_pt, 5, cv::Scalar(0, 255, 0));
 	        }
@@ -473,6 +492,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	            for(int i = 0; i< (int)matched_2d_cur.size(); i++)
 	            {
 	                cv::Point2f cur_pt = matched_2d_cur[i];
+	                find_conn_info.step3_3dpoints.push_back(gen_3dpnt(matched_3d[i]));
 	                find_conn_info.step3_cur_ponits.push_back(gen_uv(cur_pt));
 	                cv::circle(loop_match_img, cur_pt, 5, cv::Scalar(0, 255, 0));
 	            }
@@ -535,6 +555,8 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	    	             relative_yaw;
 	    	cout << "valid loop detected, " <<sequence<<", "<< index<< "-->"<< old_kf->sequence<<", "<<old_kf->index<< endl;
 	    	g_loop_info_logging.append_loopinfo(this->time_stamp, old_kf->time_stamp, path.str(), loop_info);
+	    	find_conn_info.cur_vio_pose = gen_posefromRT(origin_vio_R, origin_vio_T);
+	    	find_conn_info.old_vio_pose = gen_posefromRT(PnP_R_old, PnP_T_old);
 	    	find_conn_info.matched_file_name = path.str();
 	    	find_conn_info.cur_time.fromSec(this->time_stamp);
 	    	find_conn_info.old_time.fromSec(old_kf->time_stamp);

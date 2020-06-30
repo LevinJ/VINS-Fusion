@@ -13,3 +13,8 @@ loop_fusion/PointUV[] step1_cur_ponits
 loop_fusion/PointUV[] step1_old_ponits
 loop_fusion/PointUV[] step3_cur_ponits
 loop_fusion/PointUV[] step3_old_ponits
+geometry_msgs/Point32[] step0_3dpoints
+geometry_msgs/Point32[] step1_3dpoints
+geometry_msgs/Point32[] step3_3dpoints
+geometry_msgs/Pose cur_vio_pose
+geometry_msgs/Pose old_vio_pose
