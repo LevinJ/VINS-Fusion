@@ -18,3 +18,5 @@ geometry_msgs/Point32[] step1_3dpoints
 geometry_msgs/Point32[] step3_3dpoints
 geometry_msgs/Pose cur_vio_pose
 geometry_msgs/Pose old_vio_pose
+loop_fusion/PointUV[] step1_old_norm
+loop_fusion/PointUV[] step3_old_norm

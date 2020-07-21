@@ -390,6 +390,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	        {
 	            cv::Point2f old_pt = matched_2d_old[i];
 	            find_conn_info.step1_old_ponits.push_back(gen_uv(old_pt));
+	            find_conn_info.step1_old_norm.push_back(gen_uv(matched_2d_old_norm[i]));
 	            old_pt.x += (COL + gap);
 	            cv::circle(loop_match_img, old_pt, 5, cv::Scalar(0, 255, 0));
 	        }
@@ -500,6 +501,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	            {
 	                cv::Point2f old_pt = matched_2d_old[i];
 	                find_conn_info.step3_old_ponits.push_back(gen_uv(old_pt));
+	                find_conn_info.step3_old_norm.push_back(gen_uv(matched_2d_old_norm[i]));
 	                old_pt.x += (COL + gap);
 	                cv::circle(loop_match_img, old_pt, 5, cv::Scalar(0, 255, 0));
 	            }

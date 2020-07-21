@@ -70,6 +70,7 @@ add_executable(loop_fusion_node
     )
 
 target_link_libraries(loop_fusion_node ${catkin_LIBRARIES}  ${OpenCV_LIBS} ${CERES_LIBRARIES} ${PCL_LIBRARIES}) 
+add_dependencies(loop_fusion_node ${PROJECT_NAME}_gencpp)
 
 #add_executable(reloc_node
 #    src/reloc.cpp
