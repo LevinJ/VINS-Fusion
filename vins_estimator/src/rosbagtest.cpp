@@ -35,24 +35,24 @@ Eigen::Vector3d c1Tc0, c0Tc1;
 
 cv::Mat getImageFromMsg(const sensor_msgs::ImageConstPtr &img_msg)
 {
-    cv_bridge::CvImageConstPtr ptr;
-    if (img_msg->encoding == "8UC1")
-    {
-        sensor_msgs::Image img;
-        img.header = img_msg->header;
-        img.height = img_msg->height;
-        img.width = img_msg->width;
-        img.is_bigendian = img_msg->is_bigendian;
-        img.step = img_msg->step;
-        img.data = img_msg->data;
-        img.encoding = "mono8";
-        ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO8);
-    }
-    else
-        ptr = cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::MONO8);
+	cv_bridge::CvImageConstPtr ptr;
+	if (img_msg->encoding == "8UC1")
+	{
+		sensor_msgs::Image img;
+		img.header = img_msg->header;
+		img.height = img_msg->height;
+		img.width = img_msg->width;
+		img.is_bigendian = img_msg->is_bigendian;
+		img.step = img_msg->step;
+		img.data = img_msg->data;
+		img.encoding = "mono8";
+		ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO8);
+	}
+	else
+		ptr = cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::MONO8);
 
-    cv::Mat img = ptr->image.clone();
-    return img;
+	cv::Mat img = ptr->image.clone();
+	return img;
 }
 
 
@@ -62,15 +62,15 @@ int main(int argc, char** argv)
 	ros::NodeHandle n("~");
 	ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
 
-//	ros::Publisher pubLeftImage = n.advertise<sensor_msgs::Image>("/leftImage",1000);
-//	ros::Publisher pubRightImage = n.advertise<sensor_msgs::Image>("/rightImage",1000);
+	//	ros::Publisher pubLeftImage = n.advertise<sensor_msgs::Image>("/leftImage",1000);
+	//	ros::Publisher pubRightImage = n.advertise<sensor_msgs::Image>("/rightImage",1000);
 
 	if(argc != 3)
 	{
 		printf("please intput: rosrun vins rosbagtest [config file] [data folder] \n"
-			   "for example: rosrun vins kitti_odom_test "
-			   "~/catkin_ws/src/VINS-Fusion/config/kitti_odom/kitti_config00-02.yaml "
-			   "/media/tony-ws1/disk_D/kitti/odometry/sequences/00/ \n");
+				"for example: rosrun vins kitti_odom_test "
+				"~/catkin_ws/src/VINS-Fusion/config/kitti_odom/kitti_config00-02.yaml "
+				"/media/tony-ws1/disk_D/kitti/odometry/sequences/00/ \n");
 		return 1;
 	}
 
@@ -92,28 +92,41 @@ int main(int argc, char** argv)
 		if(! ros::ok()){
 			break;
 		}
-	  auto img_msg = m.instantiate<sensor_msgs::Image>();
-	  if (img_msg != nullptr){
-		  auto seq = img_msg->header.seq;
-		  auto time = img_msg->header.stamp.toSec();
-		  auto im = getImageFromMsg(img_msg);
-		  estimator.inputImage(time, im);
-	  }
+		std::string topic = m.getTopic();
 
-	  auto imu_msg = m.instantiate<sensor_msgs::Imu>();
-	  if (imu_msg != nullptr){
-		  auto seq = imu_msg->header.seq;
-		  double t = imu_msg->header.stamp.toSec();
-		  double dx = imu_msg->linear_acceleration.x;
-		  double dy = imu_msg->linear_acceleration.y;
-		  double dz = imu_msg->linear_acceleration.z;
-		  double rx = imu_msg->angular_velocity.x;
-		  double ry = imu_msg->angular_velocity.y;
-		  double rz = imu_msg->angular_velocity.z;
-		  Vector3d acc(dx, dy, dz);
-		  Vector3d gyr(rx, ry, rz);
-		  estimator.inputIMU(t, acc, gyr);
-	  }
+		if(topic != "/camera/left/image" && topic != "/imu/raw_data"){
+			continue;
+		}
+
+		auto img_msg = m.instantiate<sensor_msgs::Image>();
+		if (img_msg != nullptr){
+			auto seq = img_msg->header.seq;
+			if(seq< 400){
+				continue;
+			}
+			if(seq>550){
+				break;
+			}
+			std::cout<<"image seq ="<<seq<<std::endl;
+			auto time = img_msg->header.stamp.toSec();
+			auto im = getImageFromMsg(img_msg);
+			estimator.inputImage(time, im);
+		}
+
+		auto imu_msg = m.instantiate<sensor_msgs::Imu>();
+		if (imu_msg != nullptr){
+			auto seq = imu_msg->header.seq;
+			double t = imu_msg->header.stamp.toSec();
+			double dx = imu_msg->linear_acceleration.x;
+			double dy = imu_msg->linear_acceleration.y;
+			double dz = imu_msg->linear_acceleration.z;
+			double rx = imu_msg->angular_velocity.x;
+			double ry = imu_msg->angular_velocity.y;
+			double rz = imu_msg->angular_velocity.z;
+			Vector3d acc(dx, dy, dz);
+			Vector3d gyr(rx, ry, rz);
+//			estimator.inputIMU(t, acc, gyr);
+		}
 
 	}
 
@@ -168,14 +181,14 @@ int main(int argc, char** argv)
 
 
 			estimator.inputImage(imageTimeList[i], imLeft, imRight);
-			
+
 			Eigen::Matrix<double, 4, 4> pose;
 			estimator.getPoseInWorldFrame(pose);
 			if(outFile != NULL)
 				fprintf (outFile, "%f %f %f %f %f %f %f %f %f %f %f %f \n",pose(0,0), pose(0,1), pose(0,2),pose(0,3),
 																	       pose(1,0), pose(1,1), pose(1,2),pose(1,3),
 																	       pose(2,0), pose(2,1), pose(2,2),pose(2,3));
-			
+
 			//cv::imshow("leftImage", imLeft);
 			//cv::imshow("rightImage", imRight);
 			//cv::waitKey(2);
@@ -185,6 +198,6 @@ int main(int argc, char** argv)
 	}
 	if(outFile != NULL)
 		fclose (outFile);
-		*/
+	 */
 	return 0;
 }
