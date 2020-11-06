@@ -199,9 +199,9 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
     cur_un_pts = undistortedPts(cur_pts, m_camera[0]);
     pts_velocity = ptsVelocity(ids, cur_un_pts, cur_un_pts_map, prev_un_pts_map);
 
-    stringstream ss;
+//    stringstream ss;
     cout.setf(ios::fixed);
-    ss<<setprecision(6)<<_cur_time<<": ";
+//    ss<<setprecision(6)<<_cur_time<<": ";
     if(!_img1.empty() && stereo_cam)
     {
         ids_right.clear();
@@ -279,7 +279,7 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
         Eigen::Matrix<double, 7, 1> xyz_uv_velocity;
         xyz_uv_velocity << x, y, z, p_u, p_v, velocity_x, velocity_y;
         featureFrame[feature_id].emplace_back(camera_id,  xyz_uv_velocity);
-        ss<<"[feature_id= "<<feature_id<<",cameraid="<<camera_id<<",xyz_uv_velocity="<<xyz_uv_velocity.transpose()<<"],";
+//        ss<<"[feature_id= "<<feature_id<<",cameraid="<<camera_id<<",xyz_uv_velocity="<<xyz_uv_velocity.transpose()<<"],";
     }
 
     if (!_img1.empty() && stereo_cam)
@@ -304,7 +304,7 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
             featureFrame[feature_id].emplace_back(camera_id,  xyz_uv_velocity);
         }
     }
-    cout<<ss.str()<<endl;
+//    cout<<ss.str()<<endl;
     //printf("feature track whole time %f\n", t_r.toc());
     return featureFrame;
 }

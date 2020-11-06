@@ -1206,10 +1206,10 @@ void Estimator::optimization()
     //options.use_explicit_schur_complement = true;
     //options.minimizer_progress_to_stdout = true;
     //options.use_nonmonotonic_steps = true;
-//    if (marginalization_flag == MARGIN_OLD)
-//        options.max_solver_time_in_seconds = SOLVER_TIME * 4.0 / 5.0;
-//    else
-//        options.max_solver_time_in_seconds = SOLVER_TIME;
+    if (marginalization_flag == MARGIN_OLD)
+        options.max_solver_time_in_seconds = SOLVER_TIME * 4.0 / 5.0;
+    else
+        options.max_solver_time_in_seconds = SOLVER_TIME;
     TicToc t_solver;
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
