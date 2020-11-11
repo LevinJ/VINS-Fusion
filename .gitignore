@@ -14,6 +14,6 @@ result_gps.txt
 2*.txt
 camera_camera_calib.yaml
 camera_chessboard_data.dat
-/build/
+build/
 .cproject
 .project

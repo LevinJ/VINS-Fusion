@@ -8,7 +8,12 @@
  *******************************************************/
 
 #include "estimator.h"
+#if defined WITH_ROS_SIMULATE
+#include "../../ros_simulate/utility/visualization.h"
+#else
 #include "../utility/visualization.h"
+#endif
+
 #include <iomanip>
 
 Estimator::Estimator(): f_manager{Rs}
@@ -326,16 +331,24 @@ void Estimator::processMeasurements()
 
             printStatistics(*this, 0);
 
+			#ifdef WITH_ROS_SIMULATE
             std_msgs::Header header;
             header.frame_id = "world";
-            header.stamp = ros::Time(feature.first);
+            header.stamp = feature.first;
 
             pubOdometry(*this, header);
-            pubKeyPoses(*this, header);
-            pubCameraPose(*this, header);
-            pubPointCloud(*this, header);
-            pubKeyframe(*this);
-            pubTF(*this, header);
+			#else
+            std_msgs::Header header;
+			header.frame_id = "world";
+			header.stamp = ros::Time(feature.first);
+
+			pubOdometry(*this, header);
+			pubKeyPoses(*this, header);
+			pubCameraPose(*this, header);
+			pubPointCloud(*this, header);
+			pubKeyframe(*this);
+			pubTF(*this, header);
+			#endif
             mProcess.unlock();
         }
 
@@ -1073,7 +1086,7 @@ static string print_str(std::vector<double> const &a) {
 	ss<<",max="<<*max_element(a.begin(), a.end());
 	ss<<",median="<<get_median(a);
 	ss << "[";
-	for (int i = 0; i < a.size(); i++) {
+	for (unsigned int i = 0; i < a.size(); i++) {
 		ss << a.at(i) << ',';
 	}
 	ss << "]";
@@ -1122,12 +1135,12 @@ void Estimator::optimization()
 
     if (last_marginalization_info && last_marginalization_info->valid)
     {
-    	double residual_sum = 0;
+//    	double residual_sum = 0;
         // construct new marginlization_factor
         MarginalizationFactor *marginalization_factor = new MarginalizationFactor(last_marginalization_info);
         problem.AddResidualBlock(marginalization_factor, NULL,
                                  last_marginalization_parameter_blocks);
-        residual_sum = compute_residuals(marginalization_factor, NULL, last_marginalization_parameter_blocks.data());
+//        residual_sum = compute_residuals(marginalization_factor, NULL, last_marginalization_parameter_blocks.data());
 //        cout<<"margin_sum="<<residual_sum<<std::endl;
     }
     if(USE_IMU)

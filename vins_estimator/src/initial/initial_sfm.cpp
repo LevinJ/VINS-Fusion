@@ -10,7 +10,11 @@
  *******************************************************/
 
 #include "initial_sfm.h"
+#if defined WITH_ROS_SIMULATE
+#include "../../ros_simulate/utility/visualization.h"
+#else
 #include "../utility/visualization.h"
+#endif
 
 GlobalSFM::GlobalSFM(){}
 

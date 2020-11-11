@@ -47,21 +47,21 @@ int SHOW_TRACK;
 int FLOW_BACK;
 
 
-template <typename T>
-T readParam(ros::NodeHandle &n, std::string name)
-{
-    T ans;
-    if (n.getParam(name, ans))
-    {
-        ROS_INFO_STREAM("Loaded " << name << ": " << ans);
-    }
-    else
-    {
-        ROS_ERROR_STREAM("Failed to load " << name);
-        n.shutdown();
-    }
-    return ans;
-}
+//template <typename T>
+//T readParam(ros::NodeHandle &n, std::string name)
+//{
+//    T ans;
+//    if (n.getParam(name, ans))
+//    {
+//        ROS_INFO_STREAM("Loaded " << name << ": " << ans);
+//    }
+//    elsemake
+//    {
+//        ROS_ERROR_STREAM("Failed to load " << name);
+//        n.shutdown();
+//    }
+//    return ans;
+//}
 
 void readParameters(std::string config_file)
 {
@@ -180,10 +180,14 @@ void readParameters(std::string config_file)
 
     TD = fsSettings["td"];
     ESTIMATE_TD = fsSettings["estimate_td"];
-    if (ESTIMATE_TD)
-        ROS_INFO_STREAM("Unsynchronized sensors, online estimate time offset, initial td: " << TD);
+    if (ESTIMATE_TD){
+    	ROS_INFO_STREAM("Unsynchronized sensors, online estimate time offset, initial td: " << TD);
+    }
     else
-        ROS_INFO_STREAM("Synchronized sensors, fix time offset: " << TD);
+    {
+    	ROS_INFO_STREAM("Synchronized sensors, fix time offset: " << TD);
+    }
+
 
     ROW = fsSettings["image_height"];
     COL = fsSettings["image_width"];
