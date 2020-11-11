@@ -82,7 +82,9 @@ int main(int argc, char** argv)
 
 	readParameters(config_file);
 	estimator.setParameter();
+	#ifndef WITH_ROS_SIMULATE
 	registerPub(n);
+    #endif
 
 	rosbag::Bag bag;
 	bag.open(sequence.c_str());  // BagMode is Read by default
@@ -94,19 +96,19 @@ int main(int argc, char** argv)
 		}
 		std::string topic = m.getTopic();
 
-		if(topic != "/camera/left/image" && topic != "/imu/raw_data"){
+		if(topic != "/cam0/image_raw" && topic != "/imu0"){
 			continue;
 		}
 
 		auto img_msg = m.instantiate<sensor_msgs::Image>();
 		if (img_msg != nullptr){
 			auto seq = img_msg->header.seq;
-			if(seq< 400){
-				continue;
-			}
-			if(seq>550){
-				break;
-			}
+//			if(seq< 400){
+//				continue;
+//			}
+//			if(seq>550){
+//				break;
+//			}
 			std::cout<<"image seq ="<<seq<<std::endl;
 			auto time = img_msg->header.stamp.toSec();
 			auto im = getImageFromMsg(img_msg);
@@ -115,7 +117,7 @@ int main(int argc, char** argv)
 
 		auto imu_msg = m.instantiate<sensor_msgs::Imu>();
 		if (imu_msg != nullptr){
-			auto seq = imu_msg->header.seq;
+//			auto seq = imu_msg->header.seq;
 			double t = imu_msg->header.stamp.toSec();
 			double dx = imu_msg->linear_acceleration.x;
 			double dy = imu_msg->linear_acceleration.y;
@@ -125,79 +127,19 @@ int main(int argc, char** argv)
 			double rz = imu_msg->angular_velocity.z;
 			Vector3d acc(dx, dy, dz);
 			Vector3d gyr(rx, ry, rz);
-//			estimator.inputIMU(t, acc, gyr);
+			estimator.inputIMU(t, acc, gyr);
 		}
 
 	}
 
 	bag.close();
 
-	// load image list
-	/*
-	FILE* file;
-	file = std::fopen((dataPath + "times.txt").c_str() , "r");
-	if(file == NULL){
-	    printf("cannot find file: %stimes.txt\n", dataPath.c_str());
-	    ROS_BREAK();
-	    return 0;          
+
+	ros::Rate loop_rate(1000);
+	while (ros::ok()){
+		ros::spinOnce();
+		loop_rate.sleep();
 	}
-	double imageTime;
-	vector<double> imageTimeList;
-	while ( fscanf(file, "%lf", &imageTime) != EOF)
-	{
-	    imageTimeList.push_back(imageTime);
-	}
-	std::fclose(file);
-
-	string leftImagePath, rightImagePath;
-	cv::Mat imLeft, imRight;
-	FILE* outFile;
-	outFile = fopen((OUTPUT_FOLDER + "/vio.txt").c_str(),"w");
-	if(outFile == NULL)
-		printf("Output path dosen't exist: %s\n", OUTPUT_FOLDER.c_str());
-
-	for (size_t i = 0; i < imageTimeList.size(); i++)
-	{	
-		if(ros::ok())
-		{
-			printf("\nprocess image %d\n", (int)i);
-			stringstream ss;
-			ss << setfill('0') << setw(6) << i;
-			leftImagePath = dataPath + "image_0/" + ss.str() + ".png";
-			rightImagePath = dataPath + "image_1/" + ss.str() + ".png";
-			//printf("%lu  %f \n", i, imageTimeList[i]);
-			//printf("%s\n", leftImagePath.c_str() );
-			//printf("%s\n", rightImagePath.c_str() );
-
-			imLeft = cv::imread(leftImagePath, CV_LOAD_IMAGE_GRAYSCALE );
-			sensor_msgs::ImagePtr imLeftMsg = cv_bridge::CvImage(std_msgs::Header(), "mono8", imLeft).toImageMsg();
-			imLeftMsg->header.stamp = ros::Time(imageTimeList[i]);
-			pubLeftImage.publish(imLeftMsg);
-
-			imRight = cv::imread(rightImagePath, CV_LOAD_IMAGE_GRAYSCALE );
-			sensor_msgs::ImagePtr imRightMsg = cv_bridge::CvImage(std_msgs::Header(), "mono8", imRight).toImageMsg();
-			imRightMsg->header.stamp = ros::Time(imageTimeList[i]);
-			pubRightImage.publish(imRightMsg);
-
-
-			estimator.inputImage(imageTimeList[i], imLeft, imRight);
-
-			Eigen::Matrix<double, 4, 4> pose;
-			estimator.getPoseInWorldFrame(pose);
-			if(outFile != NULL)
-				fprintf (outFile, "%f %f %f %f %f %f %f %f %f %f %f %f \n",pose(0,0), pose(0,1), pose(0,2),pose(0,3),
-																	       pose(1,0), pose(1,1), pose(1,2),pose(1,3),
-																	       pose(2,0), pose(2,1), pose(2,2),pose(2,3));
-
-			//cv::imshow("leftImage", imLeft);
-			//cv::imshow("rightImage", imRight);
-			//cv::waitKey(2);
-		}
-		else
-			break;
-	}
-	if(outFile != NULL)
-		fclose (outFile);
-	 */
+	std::abort();
 	return 0;
 }

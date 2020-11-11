@@ -7,3 +7,23 @@ set(CMAKE_CXX_FLAGS "-std=c++11")
 #-DEIGEN_USE_MKL_ALL")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 add_subdirectory(camera_models/src)
+add_subdirectory(vins_estimator/src)
+
+add_compile_options(-D WITH_ROS_SIMULATE)
+
+find_package(Eigen3 3.3.3 EXACT REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+    roscpp
+    std_msgs
+    geometry_msgs
+    nav_msgs
+    tf
+    cv_bridge
+    image_transport
+    rosbag)
+include_directories(${catkin_INCLUDE_DIRS}  ${EIGEN3_INCLUDE_DIR} ./camera_models/include)
+#include_directories(../../camera_models/include ../../ros_simulate  ${CERES_INCLUDE_DIRS})
+
+
+add_executable(rosbagtest vins_estimator/src/rosbagtest.cpp)
+target_link_libraries(rosbagtest vins_lib camera_models ${catkin_LIBRARIES}) 
