@@ -24,6 +24,9 @@
 #include <std_msgs/Int32.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/Imu.h>
+#ifdef WITH_ROS_SIMULATE
+#include "../../loop_fusion/src/LoopFusion.h"
+#endif
 
 using namespace std;
 using namespace Eigen;
@@ -85,6 +88,10 @@ int main(int argc, char** argv)
 	#ifndef WITH_ROS_SIMULATE
 	registerPub(n);
     #endif
+
+#ifdef WITH_ROS_SIMULATE
+	LoopFusion loop_fusion("/home/levin/workspace/ros_projects/src/VINS-Fusion");
+#endif
 
 	rosbag::Bag bag;
 	bag.open(sequence.c_str());  // BagMode is Read by default

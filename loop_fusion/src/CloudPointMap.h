@@ -18,7 +18,7 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl/io/pcd_io.h>
-#include "parameters.h"
+//#include "parameters.h"
 #include "pose_graph.h"
 #include <map>
 #include <vector>
@@ -43,7 +43,10 @@ protected:
 	void addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop);
 public:
 	void loadPointCloud();
+	#ifndef WITH_ROS_SIMULATE
 	void publish_cloudponint(ros::Publisher &_pub_base_point_cloud);
+	#endif
+
 	void reloc_frame(KeyFrame* keyframe);
 	pcl::PointCloud<VSlamPoint>::Ptr mcloud;
 	pcl::PointCloud<pcl::PointXYZ>::Ptr mcloudxyz;

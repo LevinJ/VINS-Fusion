@@ -12,6 +12,8 @@
 
 using namespace std;
 
+extern int DEBUG_IMAGE;
+extern std::string POSE_GRAPH_SAVE_PATH;
 
 CloudPointMap::CloudPointMap(): PoseGraph(){
 	// TODO Auto-generated constructor stub
@@ -90,7 +92,7 @@ void CloudPointMap::loadPointCloud(){
 	}
 	std::cout << "Loaded " << mcloud->points.size () << " data points from "+file << std::endl;
 }
-
+#ifndef WITH_ROS_SIMULATE
 void CloudPointMap::publish_cloudponint(ros::Publisher &_pub_base_point_cloud){
 	sensor_msgs::PointCloud point_cloud;
 	point_cloud.header.frame_id = "world";
@@ -104,6 +106,7 @@ void CloudPointMap::publish_cloudponint(ros::Publisher &_pub_base_point_cloud){
 	}
 	_pub_base_point_cloud.publish(point_cloud);
 }
+#endif
 CloudPointMap::~CloudPointMap() {
 	// TODO Auto-generated destructor stub
 }

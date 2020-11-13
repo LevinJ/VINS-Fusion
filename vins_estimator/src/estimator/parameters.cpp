@@ -45,7 +45,10 @@ int MIN_DIST;
 double F_THRESHOLD;
 int SHOW_TRACK;
 int FLOW_BACK;
-
+std::string RAW_DATA_PATH;
+int DEBUG_IMAGE;
+std::string POSE_GRAPH_SAVE_PATH;
+int LOAD_PREVIOUS_POSE_GRAPH;
 
 //template <typename T>
 //T readParam(ros::NodeHandle &n, std::string name)
@@ -199,6 +202,10 @@ void readParameters(std::string config_file)
         ESTIMATE_TD = 0;
         printf("no imu, fix extrinsic param; no time offset calibration\n");
     }
+    fsSettings["raw_data_path"] >> RAW_DATA_PATH;
+    fsSettings["save_image"] >> DEBUG_IMAGE;
+    fsSettings["pose_graph_save_path"] >> POSE_GRAPH_SAVE_PATH;
+    LOAD_PREVIOUS_POSE_GRAPH = fsSettings["load_previous_pose_graph"];
 
     fsSettings.release();
 }

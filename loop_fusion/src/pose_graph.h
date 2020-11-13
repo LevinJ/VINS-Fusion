@@ -28,7 +28,6 @@
 #include "keyframe.h"
 #include "utility/tic_toc.h"
 #include "utility/utility.h"
-#include "utility/CameraPoseVisualization.h"
 #include "utility/tic_toc.h"
 #include "ThirdParty/DBoW/DBoW2.h"
 #include "ThirdParty/DVision/DVision.h"
@@ -48,18 +47,22 @@ class PoseGraph
 public:
 	PoseGraph();
 	~PoseGraph();
+	#ifndef WITH_ROS_SIMULATE
 	void registerPub(ros::NodeHandle &n);
+	nav_msgs::Path path[10];
+	nav_msgs::Path base_path;
+	CameraPoseVisualization* posegraph_visualization;
+	void publish();
+	#endif
 	void addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop);
 	void loadKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop);
 	void loadVocabulary(std::string voc_path);
 	void setIMUFlag(bool _use_imu);
 	KeyFrame* getKeyFrame(int index);
-	nav_msgs::Path path[10];
-	nav_msgs::Path base_path;
-	CameraPoseVisualization* posegraph_visualization;
+
 	void savePoseGraph();
 	void loadPoseGraph();
-	void publish();
+
 	Vector3d t_drift;
 	double yaw_drift;
 	Matrix3d r_drift;
@@ -95,11 +98,13 @@ protected:
 	BriefDatabase db;
 	BriefVocabulary* voc;
 
+	#ifndef WITH_ROS_SIMULATE
 	ros::Publisher pub_marker;
 	ros::Publisher pub_pg_path;
 	ros::Publisher pub_base_path;
 	ros::Publisher pub_pose_graph;
 	ros::Publisher pub_path[10];
+	#endif
 };
 
 template <typename T> inline

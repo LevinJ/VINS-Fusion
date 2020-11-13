@@ -71,7 +71,7 @@ ros::Publisher pub_findconnectioninfo_img;
 
 std::string BRIEF_PATTERN_FILE;
 std::string POSE_GRAPH_SAVE_PATH;
-std::string VINS_RESULT_PATH;
+std::string VINS_LOOP_RESULT_PATH;
 std::string RAW_DATA_PATH;
 int FUSE_GNSS;
 CameraPoseVisualization cameraposevisual(1, 0, 0, 1);
@@ -484,14 +484,14 @@ int main(int argc, char **argv)
 
     fsSettings["image0_topic"] >> IMAGE_TOPIC;        
     fsSettings["pose_graph_save_path"] >> POSE_GRAPH_SAVE_PATH;
-    fsSettings["output_path"] >> VINS_RESULT_PATH;
+    fsSettings["output_path"] >> VINS_LOOP_RESULT_PATH;
     fsSettings["save_image"] >> DEBUG_IMAGE;
     fsSettings["raw_data_path"] >> RAW_DATA_PATH;
 
     LOAD_PREVIOUS_POSE_GRAPH = fsSettings["load_previous_pose_graph"];
     FUSE_GNSS = fsSettings["fuse_gnss"];
-    VINS_RESULT_PATH = VINS_RESULT_PATH + "/vio_loop.csv";
-    std::ofstream fout(VINS_RESULT_PATH, std::ios::out);
+    VINS_LOOP_RESULT_PATH = VINS_LOOP_RESULT_PATH + "/vio_loop.csv";
+    std::ofstream fout(VINS_LOOP_RESULT_PATH, std::ios::out);
     fout.close();
 
     int USE_IMU = fsSettings["imu"];

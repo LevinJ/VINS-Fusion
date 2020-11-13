@@ -11,11 +11,13 @@
 
 #include "keyframe.h"
 #include "utility/LoopInfoLogging.h"
-#include "parameters.h"
+extern LoopInfoLogging g_loop_info_logging;
+
+#ifndef WITH_ROS_SIMULATE
+//#include "parameters.h"
 #include "loop_fusion/FindConnectionInfo.h"
 #include "loop_fusion/PointUV.h"
 
-extern LoopInfoLogging g_loop_info_logging;
 extern ros::Publisher pub_findconnectioninfo_img;
 
 static loop_fusion::PointUV gen_uv(cv::Point2f &pnt){
@@ -57,6 +59,15 @@ static geometry_msgs::Pose gen_posefromRT(Eigen::Matrix3d &R, Eigen::Vector3d &t
 			q.w(), q.x(), q.y(), q.z(),0;
 	return gen_pose(pose);
 }
+#endif
+
+extern int ROW;
+extern int COL;
+extern int DEBUG_IMAGE;
+extern Eigen::Vector3d tic;
+extern Eigen::Matrix3d qic;
+extern camodocal::CameraPtr m_camera;
+extern std::string BRIEF_PATTERN_FILE;
 
 template <typename Derived>
 static void reduceVector(vector<Derived> &v, vector<uchar> status)
@@ -316,7 +327,9 @@ void KeyFrame::PnPRANSAC(const vector<cv::Point2f> &matched_2d_old_norm,
 
 bool KeyFrame::findConnection(KeyFrame* old_kf)
 {
+	#ifndef WITH_ROS_SIMULATE
 	loop_fusion::FindConnectionInfo find_conn_info;
+	#endif
 	TicToc tmp_t;
 	//printf("find Connection\n");
 	vector<cv::Point2f> matched_2d_cur, matched_2d_old;
@@ -341,14 +354,18 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	        for(int i = 0; i< (int)point_2d_uv.size(); i++)
 	        {
 	            cv::Point2f cur_pt = point_2d_uv[i];
+#ifndef WITH_ROS_SIMULATE
 	            find_conn_info.step0_cur_ponits.push_back(gen_uv(cur_pt));
 	            find_conn_info.step0_3dpoints.push_back(gen_3dpnt(matched_3d[i]));
+#endif
 	            cv::circle(loop_match_img, cur_pt, 5, cv::Scalar(0, 255, 0));
 	        }
 	        for(int i = 0; i< (int)old_kf->keypoints.size(); i++)
 	        {
 	            cv::Point2f old_pt = old_kf->keypoints[i].pt;
+#ifndef WITH_ROS_SIMULATE
 	            find_conn_info.step0_old_ponits.push_back(gen_uv(old_pt));
+#endif
 	            old_pt.x += COL;
 	            cv::circle(loop_match_img, old_pt, 5, cv::Scalar(0, 255, 0));
 	        }
@@ -382,15 +399,19 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	        for(int i = 0; i< (int)matched_2d_cur.size(); i++)
 	        {
 	            cv::Point2f cur_pt = matched_2d_cur[i];
+#ifndef WITH_ROS_SIMULATE
 	            find_conn_info.step1_3dpoints.push_back(gen_3dpnt(matched_3d[i]));
 	            find_conn_info.step1_cur_ponits.push_back(gen_uv(cur_pt));
+#endif
 	            cv::circle(loop_match_img, cur_pt, 5, cv::Scalar(0, 255, 0));
 	        }
 	        for(int i = 0; i< (int)matched_2d_old.size(); i++)
 	        {
 	            cv::Point2f old_pt = matched_2d_old[i];
+#ifndef WITH_ROS_SIMULATE
 	            find_conn_info.step1_old_ponits.push_back(gen_uv(old_pt));
 	            find_conn_info.step1_old_norm.push_back(gen_uv(matched_2d_old_norm[i]));
+#endif
 	            old_pt.x += (COL + gap);
 	            cv::circle(loop_match_img, old_pt, 5, cv::Scalar(0, 255, 0));
 	        }
@@ -493,15 +514,19 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	            for(int i = 0; i< (int)matched_2d_cur.size(); i++)
 	            {
 	                cv::Point2f cur_pt = matched_2d_cur[i];
+#ifndef WITH_ROS_SIMULATE
 	                find_conn_info.step3_3dpoints.push_back(gen_3dpnt(matched_3d[i]));
 	                find_conn_info.step3_cur_ponits.push_back(gen_uv(cur_pt));
+#endif
 	                cv::circle(loop_match_img, cur_pt, 5, cv::Scalar(0, 255, 0));
 	            }
 	            for(int i = 0; i< (int)matched_2d_old.size(); i++)
 	            {
 	                cv::Point2f old_pt = matched_2d_old[i];
+#ifndef WITH_ROS_SIMULATE
 	                find_conn_info.step3_old_ponits.push_back(gen_uv(old_pt));
 	                find_conn_info.step3_old_norm.push_back(gen_uv(matched_2d_old_norm[i]));
+#endif
 	                old_pt.x += (COL + gap);
 	                cv::circle(loop_match_img, old_pt, 5, cv::Scalar(0, 255, 0));
 	            }
@@ -522,7 +547,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	                    << index << "-"
 	                    << old_kf->index << "-" << "3pnp_match.jpg";
 	            cv::imwrite( path.str().c_str(), loop_match_img);
-
+#ifndef WITH_ROS_SIMULATE
 	            if ((int)matched_2d_cur.size() > MIN_LOOP_NUM)
 	            {
 	            	/*
@@ -535,8 +560,10 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	                msg->header.stamp = ros::Time(time_stamp);
 	    	    	pub_match_img.publish(msg);
 	            }
+#endif
+
 	        }
-	    #endif
+			#endif
 	}
 
 	if ((int)matched_2d_cur.size() > MIN_LOOP_NUM)
@@ -557,6 +584,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	    	             relative_yaw;
 	    	cout << "valid loop detected, " <<sequence<<", "<< index<< "-->"<< old_kf->sequence<<", "<<old_kf->index<< endl;
 	    	g_loop_info_logging.append_loopinfo(this->time_stamp, old_kf->time_stamp, path.str(), loop_info);
+#ifndef WITH_ROS_SIMULATE
 	    	find_conn_info.cur_vio_pose = gen_posefromRT(origin_vio_R, origin_vio_T);
 	    	find_conn_info.old_vio_pose = gen_posefromRT(PnP_R_old, PnP_T_old);
 	    	find_conn_info.matched_file_name = path.str();
@@ -566,6 +594,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	    	find_conn_info.cur_image = *(cv_bridge::CvImage(std_msgs::Header(), "mono8", this->image).toImageMsg());
 	    	find_conn_info.old_image = *(cv_bridge::CvImage(std_msgs::Header(), "mono8", old_kf->image).toImageMsg());
 	    	pub_findconnectioninfo_img.publish(find_conn_info);
+#endif
 	    	//cout << "pnp relative_t " << relative_t.transpose() << endl;
 	    	//cout << "pnp relative_q " << relative_q.w() << " " << relative_q.vec().transpose() << endl;
 	        return true;

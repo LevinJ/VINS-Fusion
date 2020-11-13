@@ -6,10 +6,14 @@
  */
 
 #include "LoopInfoLogging.h"
-#include "../parameters.h"
+//#include "../parameters.h"
 #include "utility.h"
 #include <fstream>
 using namespace std;
+
+extern std::string RAW_DATA_PATH;
+extern Eigen::Vector3d tic;
+extern Eigen::Matrix3d qic;
 
 LoopInfoLogging::LoopInfoLogging() {
 	// TODO Auto-generated constructor stub

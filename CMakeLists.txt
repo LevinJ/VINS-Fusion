@@ -6,8 +6,15 @@ set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS "-std=c++11")
 #-DEIGEN_USE_MKL_ALL")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
+
+find_package(PCL 1.3 REQUIRED)
+
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
+
 add_subdirectory(camera_models/src)
 add_subdirectory(vins_estimator/src)
+add_subdirectory(loop_fusion/src)
 
 add_compile_options(-D WITH_ROS_SIMULATE)
 
@@ -26,4 +33,4 @@ include_directories(${catkin_INCLUDE_DIRS}  ${EIGEN3_INCLUDE_DIR} ./camera_model
 
 
 add_executable(rosbagtest vins_estimator/src/rosbagtest.cpp)
-target_link_libraries(rosbagtest vins_lib camera_models ${catkin_LIBRARIES}) 
+target_link_libraries(rosbagtest vins_lib loop_fusion_lib camera_models ${catkin_LIBRARIES} ${PCL_LIBRARIES}) 

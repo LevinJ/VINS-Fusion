@@ -20,7 +20,12 @@
 #include "camodocal/camera_models/PinholeCamera.h"
 #include "utility/tic_toc.h"
 #include "utility/utility.h"
+
+#ifndef WITH_ROS_SIMULATE
+#include "utility/CameraPoseVisualization.h"
 #include "parameters.h"
+#endif
+
 #include "ThirdParty/DBoW/DBoW2.h"
 #include "ThirdParty/DVision/DVision.h"
 
