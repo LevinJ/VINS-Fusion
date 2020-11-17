@@ -33,6 +33,7 @@ add_library(vins_lib
     estimator/parameters.cpp
     estimator/estimator.cpp
     estimator/feature_manager.cpp
+    estimator/VOStateSubscriber.cpp
     factor/pose_local_parameterization.cpp
     factor/projectionTwoFrameOneCamFactor.cpp
     factor/projectionTwoFrameTwoCamFactor.cpp

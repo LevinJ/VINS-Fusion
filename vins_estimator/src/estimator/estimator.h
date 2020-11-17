@@ -35,7 +35,7 @@
 #include "../factor/projectionTwoFrameTwoCamFactor.h"
 #include "../factor/projectionOneFrameTwoCamFactor.h"
 #include "../featureTracker/feature_tracker.h"
-
+#include "VOStateSubscriber.h"
 
 class Estimator
 {
@@ -53,6 +53,7 @@ class Estimator
     void processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, const double header);
     void processMeasurements();
     void changeSensorType(int use_imu, int use_stereo);
+    VOStateSubscribers vo_state_subs_;
 
     // internal
     void clearState();

@@ -10,6 +10,11 @@
 #include <eigen3/Eigen/Dense>
 #include "utility/LoopInfoLogging.h"
 #include "camodocal/camera_models/CataCamera.h"
+#include "../../vins_estimator/src/estimator/estimator.h"
+#include "../../vins_estimator/src/estimator/VOStateSubscriber.h"
+#include "keyframe.h"
+#include <thread>
+#include <mutex>
 
 //std::string VINS_LOOP_RESULT_PATH;
 //int ROW;
@@ -20,15 +25,114 @@ Eigen::Vector3d tic;
 Eigen::Matrix3d qic;
 LoopInfoLogging g_loop_info_logging;
 std::string VINS_LOOP_RESULT_PATH;
+std::mutex m_process;
+int sequence = 1;
 extern std::vector<std::string> CAM_NAMES;
 extern int LOAD_PREVIOUS_POSE_GRAPH;
 extern std::string OUTPUT_FOLDER;
+extern int LOAD_PREVIOUS_POSE_GRAPH;
+extern int USE_IMU;
 
 
-LoopFusion::LoopFusion(std::string pkg_path) {
+class VOStateSubscriberLoop: public VOStateSubscriber {
+public:
+	VOStateSubscriberLoop(){
+		frame_index_  = 0;
+	};
+	virtual void update_keyframe(std::shared_ptr<KeyframeInfo> kf_info_ptr){
+		const std::lock_guard<std::mutex> lock(buf_mutext_);
+		kf_buf_.push(kf_info_ptr);
+	};
+	virtual void update_img(std::shared_ptr<ImageInfo> image_buf){
+		const std::lock_guard<std::mutex> lock(buf_mutext_);
+		image_buf_.push(image_buf);
+
+	};
+	virtual ~VOStateSubscriberLoop(){};
+
+	 KeyFrame* get_keyframe(){
+		 std::shared_ptr<KeyframeInfo> last_kf;
+		 std::shared_ptr<ImageInfo> last_img;
+
+		 {
+			 const std::lock_guard<std::mutex> lock(buf_mutext_);
+			 if(image_buf_.empty() || kf_buf_.empty()){
+				 return nullptr;
+			 }
+			 //get latest kf info and remove all of them from the queue
+			 last_kf = kf_buf_.back();
+			 while (!kf_buf_.empty()){
+				 kf_buf_.pop();
+			 }
+			 //find image with same timestamp
+			 if(last_kf->t_ < image_buf_.front()->t_){
+				 return nullptr;
+			 }
+			 if(last_kf->t_ > image_buf_.front()->t_){
+				 image_buf_.pop();
+			 }
+			 last_img = image_buf_.front();
+		 }
+
+		 image_buf_.pop();
+		 //create the new keyframe
+		 double t = last_img->t_;
+		 cv::Mat image = last_img->img_;
+		 Vector3d &T = last_kf->P_;
+		 Matrix3d R = last_kf->R_.toRotationMatrix();
+		 vector<cv::Point3f> point_3d;
+		 vector<cv::Point2f> point_2d_uv;
+		 vector<cv::Point2f> point_2d_normal;
+		 vector<double> point_id;
+//		 for (unsigned int i = 0; i < last_kf->pnt_3d2ds_.size(); i++)
+		 for(auto &vec : last_kf->pnt_3d2ds_)
+		 {
+			 cv::Point3f p_3d;
+			 p_3d.x = vec(0,0);
+			 p_3d.y = vec(1,0);
+			 p_3d.z = vec(2,0);
+			 point_3d.push_back(p_3d);
+
+			 cv::Point2f p_2d_uv, p_2d_normal;
+			 double p_id;
+			 p_2d_normal.x = vec(3,0);
+			 p_2d_normal.y = vec(4,0);
+			 p_2d_uv.x = vec(5,0);
+			 p_2d_uv.y = vec(6,0);
+			 p_id = vec(7,0);
+			 point_2d_normal.push_back(p_2d_normal);
+			 point_2d_uv.push_back(p_2d_uv);
+			 point_id.push_back(p_id);
+
+			 //printf("u %f, v %f \n", p_2d_uv.x, p_2d_uv.y);
+		 }
+
+		 KeyFrame* keyframe = new KeyFrame(t, frame_index_, T, R, image,
+		                                    point_3d, point_2d_uv, point_2d_normal, point_id, sequence);
+		 frame_index_ ++;
+		 return keyframe;
+	 }
+	 void clear_buf(){
+		 const std::lock_guard<std::mutex> lock(buf_mutext_);
+		 	while(!kf_buf_.empty())
+		 		kf_buf_.pop();
+		 	while(!image_buf_.empty())
+		 		image_buf_.pop();
+	 }
+private:
+	 int frame_index_;
+	std::mutex buf_mutext_;
+	queue<std::shared_ptr<KeyframeInfo>> kf_buf_;
+	queue<std::shared_ptr<ImageInfo>> image_buf_;
+};
+
+
+LoopFusion::LoopFusion(std::string pkg_path, Estimator &est) {
 	// TODO Auto-generated constructor stub
 	pkg_path_ = pkg_path;
 	init_params();
+	sub_ptr_ =  std::make_shared<VOStateSubscriberLoop>();
+	est.vo_state_subs_.register_sub(sub_ptr_);
 }
 
 LoopFusion::~LoopFusion() {
@@ -51,7 +155,66 @@ void LoopFusion::init_params(){
 	std::ofstream fout(VINS_LOOP_RESULT_PATH, std::ios::out);
 	fout.close();
 
+	posegraph_.setIMUFlag(USE_IMU);
+
+	if (LOAD_PREVIOUS_POSE_GRAPH)
+	{
+		printf("load pose graph\n");
+		m_process.lock();
+		posegraph_.loadPoseGraph();
+		m_process.unlock();
+		printf("load pose graph finish\n");
+//		load_flag = 1;
+	}
+	else
+	{
+		printf("no previous pose graph\n");
+//		load_flag = 1;
+	}
+	g_loop_info_logging.init();
 
 
+}
+void LoopFusion::process(){
+
+}
+void LoopFusion::command(){
+	while(1)
+	{
+		char c = getchar();
+		if (c == 's')
+		{
+			m_process.lock();
+			posegraph_.savePoseGraph();
+			m_process.unlock();
+			printf("save pose graph finish\nyou can set 'load_previous_pose_graph' to 1 in the config file to reuse it next time\n");
+			printf("program shutting down...\n");
+//			ros::shutdown();
+		}
+		if (c == 'n')
+			new_sequence();
+
+		std::chrono::milliseconds dura(5);
+		std::this_thread::sleep_for(dura);
+	}
+
+}
+void LoopFusion::new_sequence(){
+	printf("new sequence\n");
+	sequence++;
+	printf("sequence cnt %d \n", sequence);
+	if (sequence > 5)
+	{
+		ROS_WARN("only support 5 sequences since it's boring to copy code for more sequences.");
+		ROS_BREAK();
+	}
+	sub_ptr_->clear_buf();
+//	posegraph_.posegraph_visualization->reset();
+//	posegraph.publish();
+
+}
+void LoopFusion::start_loopfuson(){
+	process_thread_ =  std::thread(&LoopFusion::process, this);
+	cmd_thread_ = std::thread(&LoopFusion::command, this);
 }
 

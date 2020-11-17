@@ -174,7 +174,7 @@ void Estimator::inputImage(double t, const cv::Mat &_img, const cv::Mat &_img1)
     else
         featureFrame = featureTracker.trackImage(t, _img, _img1);
     //printf("featureTracker time: %f\n", featureTrackerTime.toc());
-
+    vo_state_subs_.update_img(t, _img);
     if (SHOW_TRACK)
     {
         cv::Mat imgTrack = featureTracker.getTrackImage();
@@ -337,6 +337,7 @@ void Estimator::processMeasurements()
             header.stamp = feature.first;
 
             pubOdometry(*this, header);
+            vo_state_subs_.update_keyframe(*this);
 			#else
             std_msgs::Header header;
 			header.frame_id = "world";

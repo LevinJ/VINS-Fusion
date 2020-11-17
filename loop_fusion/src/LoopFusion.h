@@ -7,16 +7,26 @@
 
 #ifndef VINS_FUSION_LOOP_FUSION_SRC_LOOPFUSION_H_
 #define VINS_FUSION_LOOP_FUSION_SRC_LOOPFUSION_H_
-//#include "../../vins_estimator/src/estimator/estimator.h"
 #include "pose_graph.h"
+
+class Estimator;
+class VOStateSubscriberLoop;
+
 class LoopFusion {
 public:
-	LoopFusion(std::string pkg_path);
+	LoopFusion(std::string pkg_path, Estimator &est);
 	virtual ~LoopFusion();
 	PoseGraph posegraph_;
+	void start_loopfuson();
 private:
+	void new_sequence();
+	void process();
+	void command();
 	void init_params();
 	std::string pkg_path_;
+	std::shared_ptr<VOStateSubscriberLoop> sub_ptr_;
+	std::thread cmd_thread_;
+	std::thread process_thread_;
 
 };
 

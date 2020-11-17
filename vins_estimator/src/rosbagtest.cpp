@@ -90,7 +90,7 @@ int main(int argc, char** argv)
     #endif
 
 #ifdef WITH_ROS_SIMULATE
-	LoopFusion loop_fusion("/home/levin/workspace/ros_projects/src/VINS-Fusion");
+	LoopFusion loop_fusion("/home/levin/workspace/ros_projects/src/VINS-Fusion", estimator);
 #endif
 
 	rosbag::Bag bag;
