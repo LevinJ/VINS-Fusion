@@ -9,10 +9,11 @@
 #define VINS_FUSION_LOOP_FUSION_SRC_UTILITY_LOOPINFOLOGGING_H_
 
 #include <eigen3/Eigen/Dense>
+#include <string>
 
 class LoopInfoLogging {
 private:
-
+	std::string conn_info_log_;
 public:
 	LoopInfoLogging();
 	void init();

@@ -90,15 +90,18 @@ int main(int argc, char** argv)
     #endif
 
 #ifdef WITH_ROS_SIMULATE
-	LoopFusion loop_fusion("/home/levin/workspace/ros_projects/src/VINS-Fusion", estimator);
+	LoopFusion loop_fusion("/home/levin/workspace/ros_projects/src/VINS-Fusion/loop_fusion", estimator);
 #endif
+	auto pub_raw_img = n.advertise<sensor_msgs::Image>("/cam0/image_raw", 1000);
 
 	rosbag::Bag bag;
 	bag.open(sequence.c_str());  // BagMode is Read by default
+	ros::Rate loop_rate(100);
 
 	for(rosbag::MessageInstance const m: rosbag::View(bag))
 	{
 		if(! ros::ok()){
+			ros::shutdown();
 			break;
 		}
 		std::string topic = m.getTopic();
@@ -109,6 +112,7 @@ int main(int argc, char** argv)
 
 		auto img_msg = m.instantiate<sensor_msgs::Image>();
 		if (img_msg != nullptr){
+			pub_raw_img.publish(img_msg);
 			auto seq = img_msg->header.seq;
 //			if(seq< 400){
 //				continue;
@@ -136,17 +140,25 @@ int main(int argc, char** argv)
 			Vector3d gyr(rx, ry, rz);
 			estimator.inputIMU(t, acc, gyr);
 		}
-
+		ros::spinOnce();
+//		loop_rate.sleep();
 	}
 
 	bag.close();
+	std::cout<<"bag play done, optimization may not be done yet"<<std::endl;
 
 
-	ros::Rate loop_rate(1000);
-	while (ros::ok()){
-		ros::spinOnce();
-		loop_rate.sleep();
-	}
+//	ros::shutdown();
+
+
+//	ros::Rate loop_rate2(1000);
+//	while (ros::ok()){
+//		std::cout<<"bag play done, optimization may not be done yet"<<std::endl;
+//		ros::spinOnce();
+//		loop_rate.sleep();
+//	}
+//
+	ros::spin();
 	std::abort();
 	return 0;
 }

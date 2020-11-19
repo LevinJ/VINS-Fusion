@@ -68,13 +68,12 @@ public:
 			 if(last_kf->t_ < image_buf_.front()->t_){
 				 return nullptr;
 			 }
-			 if(last_kf->t_ > image_buf_.front()->t_){
+			 while(last_kf->t_ > image_buf_.front()->t_){
 				 image_buf_.pop();
 			 }
 			 last_img = image_buf_.front();
+			 image_buf_.pop();
 		 }
-
-		 image_buf_.pop();
 		 //create the new keyframe
 		 double t = last_img->t_;
 		 cv::Mat image = last_img->img_;
@@ -120,7 +119,7 @@ public:
 		 		image_buf_.pop();
 	 }
 private:
-	 int frame_index_;
+	int frame_index_;
 	std::mutex buf_mutext_;
 	queue<std::shared_ptr<KeyframeInfo>> kf_buf_;
 	queue<std::shared_ptr<ImageInfo>> image_buf_;
@@ -129,9 +128,16 @@ private:
 
 LoopFusion::LoopFusion(std::string pkg_path, Estimator &est) {
 	// TODO Auto-generated constructor stub
-	pkg_path_ = pkg_path;
-	init_params();
 	sub_ptr_ =  std::make_shared<VOStateSubscriberLoop>();
+
+	pkg_path_ = pkg_path;
+	init_pose_graph();
+
+	//start vo signal receiver
+	process_thread_ =  std::thread(&LoopFusion::process, this);
+	cmd_thread_ = std::thread(&LoopFusion::command, this);
+
+	//subscribe to vo sender
 	est.vo_state_subs_.register_sub(sub_ptr_);
 }
 
@@ -139,7 +145,7 @@ LoopFusion::~LoopFusion() {
 	// TODO Auto-generated destructor stub
 }
 
-void LoopFusion::init_params(){
+void LoopFusion::init_pose_graph(){
 	string vocabulary_file = pkg_path_ + "/../support_files/brief_k10L6.bin";
 	cout << "vocabulary_file" << vocabulary_file << endl;
 	posegraph_.loadVocabulary(vocabulary_file);
@@ -160,9 +166,7 @@ void LoopFusion::init_params(){
 	if (LOAD_PREVIOUS_POSE_GRAPH)
 	{
 		printf("load pose graph\n");
-		m_process.lock();
 		posegraph_.loadPoseGraph();
-		m_process.unlock();
 		printf("load pose graph finish\n");
 //		load_flag = 1;
 	}
@@ -176,6 +180,16 @@ void LoopFusion::init_params(){
 
 }
 void LoopFusion::process(){
+	while (true)
+	{
+		KeyFrame* keyframe = sub_ptr_->get_keyframe();
+		if(keyframe){
+			const std::lock_guard<std::mutex> lock(m_process);
+			posegraph_.addKeyFrame(keyframe, 1);
+		}
+		std::chrono::milliseconds dura(5);
+		std::this_thread::sleep_for(dura);
+	}
 
 }
 void LoopFusion::command(){
@@ -184,11 +198,10 @@ void LoopFusion::command(){
 		char c = getchar();
 		if (c == 's')
 		{
-			m_process.lock();
+			const std::lock_guard<std::mutex> lock(m_process);
 			posegraph_.savePoseGraph();
-			m_process.unlock();
 			printf("save pose graph finish\nyou can set 'load_previous_pose_graph' to 1 in the config file to reuse it next time\n");
-			printf("program shutting down...\n");
+//			printf("program shutting down...\n");
 //			ros::shutdown();
 		}
 		if (c == 'n')
@@ -206,15 +219,11 @@ void LoopFusion::new_sequence(){
 	if (sequence > 5)
 	{
 		ROS_WARN("only support 5 sequences since it's boring to copy code for more sequences.");
-		ROS_BREAK();
+		return;
 	}
 	sub_ptr_->clear_buf();
 //	posegraph_.posegraph_visualization->reset();
 //	posegraph.publish();
 
-}
-void LoopFusion::start_loopfuson(){
-	process_thread_ =  std::thread(&LoopFusion::process, this);
-	cmd_thread_ = std::thread(&LoopFusion::command, this);
 }
 

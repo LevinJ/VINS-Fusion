@@ -17,12 +17,12 @@ public:
 	LoopFusion(std::string pkg_path, Estimator &est);
 	virtual ~LoopFusion();
 	PoseGraph posegraph_;
-	void start_loopfuson();
+
 private:
 	void new_sequence();
 	void process();
 	void command();
-	void init_params();
+	void init_pose_graph();
 	std::string pkg_path_;
 	std::shared_ptr<VOStateSubscriberLoop> sub_ptr_;
 	std::thread cmd_thread_;

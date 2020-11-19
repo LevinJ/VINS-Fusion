@@ -174,7 +174,9 @@ void Estimator::inputImage(double t, const cv::Mat &_img, const cv::Mat &_img1)
     else
         featureFrame = featureTracker.trackImage(t, _img, _img1);
     //printf("featureTracker time: %f\n", featureTrackerTime.toc());
+#if defined WITH_ROS_SIMULATE
     vo_state_subs_.update_img(t, _img);
+#endif
     if (SHOW_TRACK)
     {
         cv::Mat imgTrack = featureTracker.getTrackImage();

@@ -11,22 +11,21 @@
 #include <fstream>
 using namespace std;
 
-extern std::string RAW_DATA_PATH;
 extern Eigen::Vector3d tic;
 extern Eigen::Matrix3d qic;
 
 LoopInfoLogging::LoopInfoLogging() {
 	// TODO Auto-generated constructor stub
+	conn_info_log_ = "/home/levin/raw_data/loop_detecton_info.csv";
 }
 void LoopInfoLogging::init(){
-	RAW_DATA_PATH = RAW_DATA_PATH + "/loop_detecton_info.csv";
-	std::ofstream fout(RAW_DATA_PATH, std::ios::out);
+	std::ofstream fout(conn_info_log_, std::ios::out);
 	fout << "cur_time,map_time,match_file,x,y,z,q_x,q_y,q_z,q_w,rel_yaw,tic_x,tic_y,tic_z,qic_y,qic_p,qic_r"<<endl;
 	fout.close();
 
 }
 void LoopInfoLogging::append_loopinfo(double cur_time, double map_time, const std::string &match_file, const Eigen::Matrix<double, 8, 1 > &loop_info){
-	ofstream loop_path_file(RAW_DATA_PATH, ios::app);
+	ofstream loop_path_file(conn_info_log_, ios::app);
 	loop_path_file.setf(ios::fixed, ios::floatfield);
 	loop_path_file.precision(6);
 	loop_path_file<<cur_time<<","<<map_time<<","<<match_file<<",";
