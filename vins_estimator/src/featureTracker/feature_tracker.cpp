@@ -157,7 +157,7 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
         reduceVector(cur_pts, status);
         reduceVector(ids, status);
         reduceVector(track_cnt, status);
-        ROS_DEBUG("temporal optical flow costs: %fms", t_o.toc());
+  //      ROS_DEBUG("temporal optical flow costs: %fms", t_o.toc());
         //printf("track cnt %d\n", (int)ids.size());
     }
 
@@ -167,12 +167,12 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
     if (1)
     {
         //rejectWithF();
-        ROS_DEBUG("set mask begins");
+//        ROS_DEBUG("set mask begins");
         TicToc t_m;
         setMask();
-        ROS_DEBUG("set mask costs %fms", t_m.toc());
+//        ROS_DEBUG("set mask costs %fms", t_m.toc());
 
-        ROS_DEBUG("detect feature begins");
+//        ROS_DEBUG("detect feature begins");
         TicToc t_t;
         int n_max_cnt = MAX_CNT - static_cast<int>(cur_pts.size());
         if (n_max_cnt > 0)
@@ -185,7 +185,7 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
         }
         else
             n_pts.clear();
-        ROS_DEBUG("detect feature costs: %f ms", t_t.toc());
+//        ROS_DEBUG("detect feature costs: %f ms", t_t.toc());
 
         for (auto &p : n_pts)
         {

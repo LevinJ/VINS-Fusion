@@ -62,3 +62,23 @@ void VOStateSubscribers::update_keyframe(const Estimator &estimator){
 
 }
 
+void VOStateSubscribers::update_odom_extrinsic(const Estimator &estimator){
+
+	if (estimator.solver_flag != Estimator::SolverFlag::NON_LINEAR){
+		return;
+	}
+
+	auto info_ptr = std::make_shared<OdomExtrinsicInfo>();
+	info_ptr->t_ = estimator.Headers[WINDOW_SIZE];
+	info_ptr->P_ = estimator.Ps[WINDOW_SIZE];
+	info_ptr->V_ = estimator.Vs[WINDOW_SIZE];
+	info_ptr->R_ = estimator.Rs[WINDOW_SIZE];
+
+	info_ptr->ric_ = estimator.ric[0];
+	info_ptr->tic_ = estimator.tic[0];
+	//send the data out
+	for(auto &sub : subs_){
+		sub->update_odom_extrinsic(info_ptr);
+	}
+}
+

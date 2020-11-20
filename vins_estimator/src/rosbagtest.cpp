@@ -120,7 +120,7 @@ int main(int argc, char** argv)
 //			if(seq>550){
 //				break;
 //			}
-			std::cout<<"image seq ="<<seq<<std::endl;
+			// std::cout<<"image seq ="<<seq<<std::endl;
 			auto time = img_msg->header.stamp.toSec();
 			auto im = getImageFromMsg(img_msg);
 			estimator.inputImage(time, im);
@@ -159,6 +159,6 @@ int main(int argc, char** argv)
 //	}
 //
 	ros::spin();
-	std::abort();
+//	std::abort();
 	return 0;
 }

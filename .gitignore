@@ -17,3 +17,4 @@ camera_chessboard_data.dat
 build/
 .cproject
 .project
+bin/

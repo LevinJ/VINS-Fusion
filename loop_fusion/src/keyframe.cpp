@@ -11,6 +11,7 @@
 
 #include "keyframe.h"
 #include "utility/LoopInfoLogging.h"
+#include "LPStateSubscriber.h"
 extern LoopInfoLogging g_loop_info_logging;
 
 #ifndef WITH_ROS_SIMULATE
@@ -68,6 +69,7 @@ extern Eigen::Vector3d tic;
 extern Eigen::Matrix3d qic;
 extern camodocal::CameraPtr m_camera;
 extern std::string BRIEF_PATTERN_FILE;
+extern LPStateSubscribers g_lp_state_subscriber;
 
 template <typename Derived>
 static void reduceVector(vector<Derived> &v, vector<uchar> status)
@@ -582,7 +584,8 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	    	loop_info << relative_t.x(), relative_t.y(), relative_t.z(),
 	    	             relative_q.w(), relative_q.x(), relative_q.y(), relative_q.z(),
 	    	             relative_yaw;
-	    	cout << "valid loop detected, " <<sequence<<", "<< index<< "-->"<< old_kf->sequence<<", "<<old_kf->index<< endl;
+	    	g_lp_state_subscriber.update_loop_info(this, old_kf,  path.str());
+//	    	cout << "valid loop detected, " <<sequence<<", "<< index<< "-->"<< old_kf->sequence<<", "<<old_kf->index<< endl;
 	    	g_loop_info_logging.append_loopinfo(this->time_stamp, old_kf->time_stamp, path.str(), loop_info);
 #ifndef WITH_ROS_SIMULATE
 	    	find_conn_info.cur_vio_pose = gen_posefromRT(origin_vio_R, origin_vio_T);

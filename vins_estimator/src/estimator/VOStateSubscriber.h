@@ -48,6 +48,18 @@ public:
 
 };
 
+class OdomExtrinsicInfo: public VoInfo{
+public:
+	OdomExtrinsicInfo(){};
+	virtual ~OdomExtrinsicInfo(){};
+	Eigen::Vector3d P_;
+	Eigen::Vector3d V_;
+	Eigen::Matrix3d R_;
+	Eigen::Matrix3d ric_;
+	Eigen::Vector3d tic_;
+};
+
+
 
 
 class VOStateSubscriber {
@@ -55,6 +67,7 @@ public:
 	VOStateSubscriber(){};
 	virtual void update_keyframe(std::shared_ptr<KeyframeInfo> kf_info_ptr)=0;
 	virtual void update_img(std::shared_ptr<ImageInfo> im_info_ptr)=0;
+	virtual void update_odom_extrinsic(std::shared_ptr<OdomExtrinsicInfo> info_ptr)=0;
 	virtual ~VOStateSubscriber(){};
 };
 
@@ -63,6 +76,7 @@ public:
 	VOStateSubscribers(){};
 	void update_keyframe(const Estimator &estimator);
 	void update_img(double t, const cv::Mat &img);
+	void update_odom_extrinsic(const Estimator &estimator);
 	virtual ~VOStateSubscribers(){};
 	void register_sub(std::shared_ptr<VOStateSubscriber> sub_ptr){
 		subs_.push_back(sub_ptr);

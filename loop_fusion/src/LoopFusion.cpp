@@ -25,7 +25,7 @@ Eigen::Vector3d tic;
 Eigen::Matrix3d qic;
 LoopInfoLogging g_loop_info_logging;
 std::string VINS_LOOP_RESULT_PATH;
-std::mutex m_process;
+static std::mutex m_process;
 int sequence = 1;
 extern std::vector<std::string> CAM_NAMES;
 extern int LOAD_PREVIOUS_POSE_GRAPH;
@@ -60,7 +60,7 @@ public:
 				 return nullptr;
 			 }
 			 //get latest kf info and remove all of them from the queue
-			 last_kf = kf_buf_.back();
+			 last_kf = kf_buf_.front();
 			 while (!kf_buf_.empty()){
 				 kf_buf_.pop();
 			 }
@@ -117,6 +117,11 @@ public:
 		 		kf_buf_.pop();
 		 	while(!image_buf_.empty())
 		 		image_buf_.pop();
+	 }
+	 virtual void update_odom_extrinsic(std::shared_ptr<OdomExtrinsicInfo> info_ptr){
+		 const std::lock_guard<std::mutex> lock(m_process);
+		 tic = info_ptr->tic_;
+		 qic = info_ptr->ric_;
 	 }
 private:
 	int frame_index_;

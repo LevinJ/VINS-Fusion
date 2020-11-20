@@ -65,6 +65,7 @@ add_library(loop_fusion_lib
     ThirdParty/VocabularyBinary.cpp
     CloudPointMap.cpp
     LoopFusion.cpp
+    LPStateSubscriber.cpp
 #    Loop_fusion_node.cpp
     )
 

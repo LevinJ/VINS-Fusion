@@ -252,7 +252,7 @@ void PoseGraph::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
     Vector3d P;
     Matrix3d R;
     cur_kf->getVioPose(P, R);
-    cout<<"time="<<cur_kf->time_stamp<<", w_t_vio="<<w_t_vio.transpose()<<", t_drift="<<t_drift.transpose()<<endl;
+    cout<< std::setprecision(6)<<"time="<<cur_kf->time_stamp<<", w_t_vio="<<w_t_vio.transpose()<<", t_drift="<<t_drift.transpose()<<endl;
     P = r_drift * P + t_drift;
     R = r_drift * R;
     cur_kf->updatePose(P, R);

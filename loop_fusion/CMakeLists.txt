@@ -67,6 +67,7 @@ add_executable(loop_fusion_node
     src/ThirdParty/DVision/BRIEF.cpp
     src/ThirdParty/VocabularyBinary.cpp
     src/CloudPointMap.cpp
+    src/LPStateSubscriber.cpp
     )
 
 target_link_libraries(loop_fusion_node ${catkin_LIBRARIES}  ${OpenCV_LIBS} ${CERES_LIBRARIES} ${PCL_LIBRARIES}) 
