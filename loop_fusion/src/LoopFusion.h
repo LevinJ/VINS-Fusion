@@ -14,7 +14,8 @@ class VOStateSubscriberLoop;
 
 class LoopFusion {
 public:
-	LoopFusion(std::string pkg_path, Estimator &est);
+	LoopFusion();
+	void init(std::string pkg_path, Estimator &est);
 	virtual ~LoopFusion();
 	PoseGraph posegraph_;
 

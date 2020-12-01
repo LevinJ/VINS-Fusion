@@ -131,10 +131,11 @@ private:
 };
 
 
-LoopFusion::LoopFusion(std::string pkg_path, Estimator &est) {
+LoopFusion::LoopFusion() {
 	// TODO Auto-generated constructor stub
+}
+void LoopFusion::init(std::string pkg_path, Estimator &est){
 	sub_ptr_ =  std::make_shared<VOStateSubscriberLoop>();
-
 	pkg_path_ = pkg_path;
 	init_pose_graph();
 
@@ -144,8 +145,8 @@ LoopFusion::LoopFusion(std::string pkg_path, Estimator &est) {
 
 	//subscribe to vo sender
 	est.vo_state_subs_.register_sub(sub_ptr_);
-}
 
+}
 LoopFusion::~LoopFusion() {
 	// TODO Auto-generated destructor stub
 }

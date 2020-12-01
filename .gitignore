@@ -18,3 +18,5 @@ build/
 .cproject
 .project
 bin/
+pybind11/
+.pydevproject

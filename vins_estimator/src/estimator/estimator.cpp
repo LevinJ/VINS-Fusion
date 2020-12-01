@@ -20,7 +20,14 @@ Estimator::Estimator(): f_manager{Rs}
 {
     ROS_INFO("init begins");
     initThreadFlag = false;
+    for (int i = 0; i < WINDOW_SIZE + 1; i++)
+	{
+		pre_integrations[i] = nullptr;
+	}
+    tmp_pre_integration = nullptr;
+    last_marginalization_info = nullptr;
     clearState();
+    ROS_INFO("init ends");
 }
 
 Estimator::~Estimator()

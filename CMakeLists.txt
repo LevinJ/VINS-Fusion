@@ -35,5 +35,11 @@ include_directories(${catkin_INCLUDE_DIRS}  ${EIGEN3_INCLUDE_DIR} ./camera_model
 #include_directories(../../camera_models/include ../../ros_simulate  ${CERES_INCLUDE_DIRS})
 
 
-add_executable(rosbagtest vins_estimator/src/rosbagtest.cpp)
-target_link_libraries(rosbagtest vins_lib loop_fusion_lib camera_models ${catkin_LIBRARIES} ${PCL_LIBRARIES}) 
+add_executable(rosbagtest_lib vins_estimator/src/rosbagtest_lib.cpp vins_estimator/src/vslam_interface.cpp)
+target_link_libraries(rosbagtest_lib vins_lib loop_fusion_lib camera_models ${catkin_LIBRARIES} ${PCL_LIBRARIES}) 
+
+#add python wrapper libary
+set(PYBIND11_PYTHON_VERSION  2.7)
+add_subdirectory(pybind11)
+pybind11_add_module(vslam  python_wrapper/main.cpp  vins_estimator/src/vslam_interface.cpp)
+target_link_libraries(vslam  PRIVATE vins_lib loop_fusion_lib camera_models  ${PCL_LIBRARIES} ${OpenCV_LIBS})

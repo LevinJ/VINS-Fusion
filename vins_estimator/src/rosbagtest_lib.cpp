@@ -24,17 +24,12 @@
 #include <std_msgs/Int32.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/Imu.h>
-#ifdef WITH_ROS_SIMULATE
 #include "../../loop_fusion/src/LoopFusion.h"
-#endif
+#include "vslam_interface.h"
 
 using namespace std;
 using namespace Eigen;
 
-Estimator estimator;
-
-Eigen::Matrix3d c1Rc0, c0Rc1;
-Eigen::Vector3d c1Tc0, c0Tc1;
 
 cv::Mat getImageFromMsg(const sensor_msgs::ImageConstPtr &img_msg)
 {
@@ -61,12 +56,9 @@ cv::Mat getImageFromMsg(const sensor_msgs::ImageConstPtr &img_msg)
 
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "vins_estimator");
+	ros::init(argc, argv, "rosbagtest_lib");
 	ros::NodeHandle n("~");
 	ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
-
-	//	ros::Publisher pubLeftImage = n.advertise<sensor_msgs::Image>("/leftImage",1000);
-	//	ros::Publisher pubRightImage = n.advertise<sensor_msgs::Image>("/rightImage",1000);
 
 	if(argc != 3)
 	{
@@ -83,20 +75,9 @@ int main(int argc, char** argv)
 	printf("read sequence: %s\n", argv[2]);
 	string dataPath = sequence + "/";
 
-	readParameters(config_file);
-	estimator.setParameter();
-	#ifndef WITH_ROS_SIMULATE
-	registerPub(n);
-    #endif
+	init_estimator(config_file);
+	init_loop_fusion("/home/levin/workspace/ros_projects/src/VINS-Fusion/loop_fusion");
 
-#ifdef WITH_ROS_SIMULATE
-	LoopFusion loop_fusion("/home/levin/workspace/ros_projects/src/VINS-Fusion/loop_fusion", estimator);
-#endif
-
-#ifndef WITH_ROS_SIMULATE
-	auto pub_raw_img = n.advertise<sensor_msgs::Image>("/cam0/image_raw", 1000);
-	ros::Rate loop_rate(100);
-#endif
 
 	rosbag::Bag bag;
 	bag.open(sequence.c_str());  // BagMode is Read by default
@@ -104,12 +85,6 @@ int main(int argc, char** argv)
 
 	for(rosbag::MessageInstance const m: rosbag::View(bag))
 	{
-#ifndef WITH_ROS_SIMULATE
-		if(! ros::ok()){
-			ros::shutdown();
-			break;
-		}
-#endif
 		std::string topic = m.getTopic();
 
 		if(topic != "/cam0/image_raw" && topic != "/imu0"){
@@ -118,25 +93,16 @@ int main(int argc, char** argv)
 
 		auto img_msg = m.instantiate<sensor_msgs::Image>();
 		if (img_msg != nullptr){
-#ifndef WITH_ROS_SIMULATE
-			pub_raw_img.publish(img_msg);
-#endif
+
 			auto seq = img_msg->header.seq;
-//			if(seq< 400){
-//				continue;
-//			}
-//			if(seq>550){
-//				break;
-//			}
 			// std::cout<<"image seq ="<<seq<<std::endl;
 			auto time = img_msg->header.stamp.toSec();
 			auto im = getImageFromMsg(img_msg);
-			estimator.inputImage(time, im);
+			inputImage(time, im);
 		}
 
 		auto imu_msg = m.instantiate<sensor_msgs::Imu>();
 		if (imu_msg != nullptr){
-//			auto seq = imu_msg->header.seq;
 			double t = imu_msg->header.stamp.toSec();
 			double dx = imu_msg->linear_acceleration.x;
 			double dy = imu_msg->linear_acceleration.y;
@@ -146,29 +112,13 @@ int main(int argc, char** argv)
 			double rz = imu_msg->angular_velocity.z;
 			Vector3d acc(dx, dy, dz);
 			Vector3d gyr(rx, ry, rz);
-			estimator.inputIMU(t, acc, gyr);
+			inputIMU(t, acc, gyr);
 		}
-#ifndef WITH_ROS_SIMULATE
-		ros::spinOnce();
-#endif
-//		loop_rate.sleep();
 	}
 
 	bag.close();
 	std::cout<<"bag play done, optimization may not be done yet"<<std::endl;
 
-
-//	ros::shutdown();
-
-
-//	ros::Rate loop_rate2(1000);
-//	while (ros::ok()){
-//		std::cout<<"bag play done, optimization may not be done yet"<<std::endl;
-//		ros::spinOnce();
-//		loop_rate.sleep();
-//	}
-//
 	ros::spin();
-//	std::abort();
 	return 0;
 }
