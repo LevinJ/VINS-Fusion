@@ -141,7 +141,7 @@ void LoopFusion::init(std::string pkg_path, Estimator &est){
 
 	//start vo signal receiver
 	process_thread_ =  std::thread(&LoopFusion::process, this);
-	cmd_thread_ = std::thread(&LoopFusion::command, this);
+//	cmd_thread_ = std::thread(&LoopFusion::command, this);
 
 	//subscribe to vo sender
 	est.vo_state_subs_.register_sub(sub_ptr_);
@@ -197,6 +197,11 @@ void LoopFusion::process(){
 		std::this_thread::sleep_for(dura);
 	}
 
+}
+void LoopFusion::create_map(){
+	const std::lock_guard<std::mutex> lock(m_process);
+	posegraph_.savePoseGraph();
+	printf("save pose graph finish\nyou can set 'load_previous_pose_graph' to 1 in the config file to reuse it next time\n");
 }
 void LoopFusion::command(){
 	while(1)

@@ -32,3 +32,7 @@ void inputImage(double t, cv::Mat &  img1){
 	g_est_ptr->inputImage(t, img1);
 //	g_est.inputImage(t, img1);
 }
+
+void create_map(){
+	g_lf_ptr->create_map();
+}

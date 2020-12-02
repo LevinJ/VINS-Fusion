@@ -18,6 +18,7 @@ public:
 	void init(std::string pkg_path, Estimator &est);
 	virtual ~LoopFusion();
 	PoseGraph posegraph_;
+	void create_map();
 
 private:
 	void new_sequence();

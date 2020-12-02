@@ -118,5 +118,6 @@ PYBIND11_MODULE(vslam, m) {
     m.def("inputIMU", &inputIMU);
     m.def("inputImage_nparr", &inputImage_nparr);
     m.def("init_loop_fusion", &init_loop_fusion);
+    m.def("create_map", &create_map);
 
 }
