@@ -4,7 +4,7 @@
 #include <pybind11/functional.h>
 #include <pybind11/eigen.h>
 #include "../vins_estimator/src/vslam_interface.h"
-//#include "../vins_estimator/src/estimator/estimator.h"
+#include "../vins_estimator/src/estimator/VOStateSubscriber.h"
 //#include "../loop_fusion/src/LoopFusion.h"
 #include <pybind11/numpy.h>
 #include <memory>
@@ -114,10 +114,19 @@ PYBIND11_MODULE(vslam, m) {
 //				 .def("PyinputImage", &PyEstimator::PyinputImage);
 //
 //    m.def("readParameters", &readParameters);
+
+	py::class_<OdomExtrinsicInfo>(m, "OdomExtrinsicInfo")
+					 .def(py::init<>())
+					 .def_readwrite("P_", &OdomExtrinsicInfo::P_)
+					 .def_readwrite("V_", &OdomExtrinsicInfo::V_)
+					 .def_readwrite("R_", &OdomExtrinsicInfo::R_)
+					 .def_readwrite("ric_", &OdomExtrinsicInfo::ric_)
+					 .def_readwrite("tic_", &OdomExtrinsicInfo::tic_);
     m.def("init_estimator", &init_estimator);
     m.def("inputIMU", &inputIMU);
     m.def("inputImage_nparr", &inputImage_nparr);
     m.def("init_loop_fusion", &init_loop_fusion);
     m.def("create_map", &create_map);
+    m.def("register_vo_callbacks", &register_vo_callbacks);
 
 }

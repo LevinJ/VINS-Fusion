@@ -36,3 +36,18 @@ void inputImage(double t, cv::Mat &  img1){
 void create_map(){
 	g_lf_ptr->create_map();
 }
+
+void register_vo_callbacks(std::function<void(OdomExtrinsicInfo &)> odom_extric_f,
+		std::function<void(KeyframeInfo &)> key_frame_info_f, std::function<void(ImageInfo &)> img_info_f){
+	auto vo_cbs = std::make_shared<VOStateSubscriber_callback>();
+	if(odom_extric_f){
+		vo_cbs->odom_extric_f_ = odom_extric_f;
+	}
+	if(key_frame_info_f){
+		vo_cbs->key_frame_info_f_ = key_frame_info_f;
+	}
+	if(img_info_f){
+		vo_cbs->img_info_f_ = img_info_f;
+	}
+	g_est_ptr->vo_state_subs_.register_sub(vo_cbs);
+}

@@ -13,6 +13,7 @@
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
 #include <opencv2/core/eigen.hpp>
+#include <functional>
 class Estimator;
 
 //class VOStates{
@@ -69,6 +70,32 @@ public:
 	virtual void update_img(std::shared_ptr<ImageInfo> im_info_ptr)=0;
 	virtual void update_odom_extrinsic(std::shared_ptr<OdomExtrinsicInfo> info_ptr)=0;
 	virtual ~VOStateSubscriber(){};
+};
+
+class VOStateSubscriber_callback: public  VOStateSubscriber{
+public:
+	VOStateSubscriber_callback(){};
+	virtual void update_keyframe(std::shared_ptr<KeyframeInfo> kf_info_ptr){
+		if(key_frame_info_f_){
+			key_frame_info_f_(*kf_info_ptr);
+		}
+	}
+	virtual void update_img(std::shared_ptr<ImageInfo> im_info_ptr){
+		if(img_info_f_){
+			img_info_f_(*im_info_ptr);
+		}
+
+	}
+	virtual void update_odom_extrinsic(std::shared_ptr<OdomExtrinsicInfo> info_ptr){
+		if (odom_extric_f_){
+			odom_extric_f_(*info_ptr);
+		}
+	}
+	virtual ~VOStateSubscriber_callback(){};
+
+	std::function<void(OdomExtrinsicInfo &)> odom_extric_f_;
+	std::function<void(KeyframeInfo &)> key_frame_info_f_;
+	std::function<void(ImageInfo &)> img_info_f_;
 };
 
 class VOStateSubscribers {
