@@ -28,8 +28,8 @@ void inputIMU(double t, const Vector3d &linearAcceleration, const Vector3d &angu
 	g_est_ptr->inputIMU(t, linearAcceleration, angularVelocity);
 //	g_est.inputIMU(t, linearAcceleration, angularVelocity);
 }
-void inputImage(double t, cv::Mat &  img1){
-	g_est_ptr->inputImage(t, img1);
+void inputImage(double t, const cv::Mat &  img1, const cv::Mat &  img2){
+	g_est_ptr->inputImage(t, img1, img2);
 //	g_est.inputImage(t, img1);
 }
 

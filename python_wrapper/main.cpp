@@ -70,12 +70,16 @@ cv::Mat getMat(py::array_t<uint8_t> &  img){
 	auto cols = img.shape(1);
 	auto type = CV_8UC1;
 
-	cv::Mat img2(rows, cols, type, (unsigned char*)img.data());
-	return img2;
+	if(cols > 5){
+		cv::Mat img2(rows, cols, type, (unsigned char*)img.data());
+		return img2;
+	}
+	return cv::Mat();
 }
-void inputImage_nparr(double t, py::array_t<uint8_t> &  img1){
+void inputImage_nparr(double t, py::array_t<uint8_t> &  img1, py::array_t<uint8_t> &  img2){
 	cv::Mat m1 = (getMat(img1)).clone();
-	inputImage(t, m1);
+	cv::Mat m2 = (getMat(img2)).clone();
+	inputImage(t, m1, m2);
 }
 
 
