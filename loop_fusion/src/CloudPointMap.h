@@ -12,33 +12,13 @@
 #include<string>
 #include "keyframe.h"
 
-#define PCL_NO_PRECOMPILE
-//#include <pcl/memory.h>
-#include <pcl/pcl_macros.h>
-#include <pcl/point_types.h>
-#include <pcl/point_cloud.h>
-#include <pcl/io/pcd_io.h>
-//#include "parameters.h"
 #include "pose_graph.h"
 #include <map>
 #include <vector>
 
-struct VSlamPoint
-{
-  PCL_ADD_POINT4D;                  // preferred way of adding a XYZ+padding
-  uint32_t id;
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW     // make sure our new allocators are aligned
-};
-
-POINT_CLOUD_REGISTER_POINT_STRUCT (VSlamPoint,           // here we assume a XYZ + "test" (as fields)
-                                   (float, x, x)
-                                   (float, y, y)
-                                   (float, z, z)
-                                   (uint32_t, id, id)
-)
 class CloudPointMap: public PoseGraph {
 protected:
-	std::map<int, std::vector<double>> mpointidmap;
+	std::map<double, std::vector<double>> point_map_;
 	int detectLoop(KeyFrame* keyframe, int frame_index);
 	void addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop);
 public:
@@ -48,13 +28,13 @@ public:
 	#endif
 
 	void reloc_frame(KeyFrame* keyframe);
-	pcl::PointCloud<VSlamPoint>::Ptr mcloud;
-	pcl::PointCloud<pcl::PointXYZ>::Ptr mcloudxyz;
 	CloudPointMap();
 	virtual ~CloudPointMap();
 	void loadPoseGraph();
 
 	void saveMap(std::list<KeyFrame*> &keyframelist);
+private:
+	std::string point_cloud_path_;
 };
 
 #endif /* VINS_FUSION_LOOP_FUSION_CLOUDPOINTMAP_H_ */

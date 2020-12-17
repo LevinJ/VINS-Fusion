@@ -6,8 +6,6 @@
  */
 
 #include "CloudPointMap.h"
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
 #include "utility/utility.h"
 
 using namespace std;
@@ -17,41 +15,37 @@ extern std::string POSE_GRAPH_SAVE_PATH;
 
 CloudPointMap::CloudPointMap(): PoseGraph(){
 	// TODO Auto-generated constructor stub
-	mcloud.reset(new  pcl::PointCloud<VSlamPoint>());
-	mcloudxyz.reset(new  pcl::PointCloud<pcl::PointXYZ>());
+	point_cloud_path_ = POSE_GRAPH_SAVE_PATH + "vlsam_pcd.pcd";
 }
 void CloudPointMap::saveMap(std::list<KeyFrame*> &keyframelist){
-	pcl::PointCloud<VSlamPoint> cloud;
-	 std::set<int> idset;
 
+	point_map_.clear();
+	//save 3d points
 	 for (list<KeyFrame*>::iterator it = keyframelist.begin(); it != keyframelist.end(); it++){
 		 vector<cv::Point3f> &point_3d = (*it)->point_3d;
-		 vector<cv::Point2f> &point_2d_uv = (*it)->point_2d_uv;
 		 vector<double> &point_id = (*it)->point_id;
 		 for(unsigned int i=0; i<point_id.size(); i++ ){
-			 auto it = idset.find(point_id[i]);
-			 if(it != idset.end()){
-				 //the point has already been inserted before
+			 if(point_map_.find(point_id[i]) != point_map_.end()){
 				 continue;
 			 }
-			 idset.insert(point_id[i]);
-			 VSlamPoint point;
-
-			 point.x = point_3d[i].x;
-			 point.y = point_3d[i].y;
-			 point.z = point_3d[i].z;
-			 point.id = point_id[i];
-
-			 cloud.push_back(point);
+			 point_map_[point_id[i]] = {point_3d[i].x, point_3d[i].y, point_3d[i].z};
 		 }
 	 }
 
-	 pcl::io::savePCDFileASCII (POSE_GRAPH_SAVE_PATH + "vlsam_pcd.pcd", cloud);
-	 std::cerr << "Saved " << cloud.points.size () << " data points to " << POSE_GRAPH_SAVE_PATH + "vlsam_pcd.pcd" << std::endl;
+	 auto kpoint_cloud_file = fopen(point_cloud_path_.c_str(), "w");
+	 for (auto it=point_map_.begin(); it!=point_map_.end(); ++it){
+		 auto id = it->first;
+		 auto x =  it->second[0];
+		 auto y =  it->second[1];
+		 auto z =  it->second[2];
+		 fprintf(kpoint_cloud_file, "%lf %lf %lf %lf\n", id, x,y,z);
+	 }
+	 fclose(kpoint_cloud_file);
+	 std::cerr << "Saved " << point_map_.size () << " data points to " << point_cloud_path_ << std::endl;
 
 	 // write point_id, point_2d_uv, point_2d_norm
 	 for (list<KeyFrame*>::iterator it = keyframelist.begin(); it != keyframelist.end(); it++){
-		 auto keypoints_path = POSE_GRAPH_SAVE_PATH + to_string((*it)->index) + "_keypoints_window.txt";
+		 auto keypoints_path = POSE_GRAPH_SAVE_PATH + to_string((*it)->index) + "_keypoints_selected.txt";
 		 auto keypoints_file = fopen(keypoints_path.c_str(), "w");
 
 		 auto pointid_path = POSE_GRAPH_SAVE_PATH + to_string((*it)->index) + "_pointid.txt";
@@ -70,38 +64,32 @@ void CloudPointMap::saveMap(std::list<KeyFrame*> &keyframelist){
 }
 
 void CloudPointMap::loadPointCloud(){
-	std::string file = POSE_GRAPH_SAVE_PATH + "vlsam_pcd.pcd";
-	if (pcl::io::loadPCDFile<VSlamPoint> (file, *mcloud) == -1) //* load the file
+	point_map_.clear();
+	FILE * pFile = fopen (point_cloud_path_.c_str(),"r");
+	if (pFile == NULL)
 	{
-		cout<<"Couldn't read file "<<file<<endl;
+		printf("load point cloud error: wrong previous pose graph path or no previous pose graph \n");
 		return;
 	}
-	for(unsigned int i=0; i < mcloud->size(); i++){
-
-		pcl::PointXYZ pnt;
-		pnt.x = mcloud->points[i].x;
-		pnt.y = mcloud->points[i].y;
-		pnt.z = mcloud->points[i].z;
-		mcloudxyz->push_back(pnt);
-		uint32_t id = mcloud->points[i].id;
-		if(mpointidmap.find(id) == mpointidmap.end()){
-			mpointidmap[id] = {pnt.x, pnt.y,pnt.z};
-		}
-
-
+	double id;
+	double x;
+	double y;
+	double z;
+	while (fscanf(pFile,"%lf %lf %lf %lf", &id, &x, &y, &z) != EOF){
+		point_map_[id] = {x, y, z};
 	}
-	std::cout << "Loaded " << mcloud->points.size () << " data points from "+file << std::endl;
+	fclose (pFile);
 }
 #ifndef WITH_ROS_SIMULATE
 void CloudPointMap::publish_cloudponint(ros::Publisher &_pub_base_point_cloud){
 	sensor_msgs::PointCloud point_cloud;
 	point_cloud.header.frame_id = "world";
 	point_cloud.header.stamp = ros::Time::now();
-	for(unsigned int i=0; i < mcloud->size(); i++){
+	for (auto it=point_map_.begin(); it!=point_map_.end(); ++it){
 		geometry_msgs::Point32 pnt;
-		pnt.x = mcloud->points[i].x;
-		pnt.y = mcloud->points[i].y;
-		pnt.z = mcloud->points[i].z;
+		pnt.x = it->second[0];
+		pnt.y = it->second[1];
+		pnt.z = it->second[2];
 		point_cloud.points.push_back(pnt);
 	}
 	_pub_base_point_cloud.publish(point_cloud);
@@ -147,17 +135,6 @@ void CloudPointMap::loadPoseGraph()
                                     &loop_info_4, &loop_info_5, &loop_info_6, &loop_info_7,
                                     &keypoints_num) != EOF)
     {
-        /*
-        printf("I read: %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %d %lf %lf %lf %lf %lf %lf %lf %lf %d\n", index, time_stamp,
-                                    VIO_Tx, VIO_Ty, VIO_Tz,
-                                    PG_Tx, PG_Ty, PG_Tz,
-                                    VIO_Qw, VIO_Qx, VIO_Qy, VIO_Qz,
-                                    PG_Qw, PG_Qx, PG_Qy, PG_Qz,
-                                    loop_index,
-                                    loop_info_0, loop_info_1, loop_info_2, loop_info_3,
-                                    loop_info_4, loop_info_5, loop_info_6, loop_info_7,
-                                    keypoints_num);
-        */
     	if(index < 1){
     		continue;
     	}
@@ -194,40 +171,13 @@ void CloudPointMap::loadPoseGraph()
             }
 
         // load window keypoints, 3dpoint, pointid
-//        string brief_path = POSE_GRAPH_SAVE_PATH + to_string(index) + "_briefdes.dat";
-//        std::ifstream brief_file(brief_path, std::ios::binary);
-//        string keypoints_path = POSE_GRAPH_SAVE_PATH + to_string(index) + "_keypoints_window.txt";
-//        FILE *keypoints_file;
-//        keypoints_file = fopen(keypoints_path.c_str(), "r");
-//        vector<cv::KeyPoint> keypoints;
-//        vector<cv::KeyPoint> keypoints_norm;
-//        vector<BRIEF::bitset> brief_descriptors;
-//        for (int i = 0; i < keypoints_num; i++)
-//        {
-//            BRIEF::bitset tmp_des;
-//            brief_file >> tmp_des;
-//            brief_descriptors.push_back(tmp_des);
-//            cv::KeyPoint tmp_keypoint;
-//            cv::KeyPoint tmp_keypoint_norm;
-//            double p_x, p_y, p_x_norm, p_y_norm;
-//            if(!fscanf(keypoints_file,"%lf %lf %lf %lf", &p_x, &p_y, &p_x_norm, &p_y_norm))
-//                printf(" fail to load pose graph \n");
-//            tmp_keypoint.pt.x = p_x;
-//            tmp_keypoint.pt.y = p_y;
-//            tmp_keypoint_norm.pt.x = p_x_norm;
-//            tmp_keypoint_norm.pt.y = p_y_norm;
-//            keypoints.push_back(tmp_keypoint);
-//            keypoints_norm.push_back(tmp_keypoint_norm);
-//        }
-//        brief_file.close();
-//        fclose(keypoints_file);
 
         vector<cv::Point3f> point_3d;
 		vector<cv::Point2f> point_2d_uv;
 		vector<cv::Point2f> point_2d_normal;
 		vector<double> point_id;
 
-		auto keypoints_path = POSE_GRAPH_SAVE_PATH + to_string(index) + "_keypoints_window.txt";
+		auto keypoints_path = POSE_GRAPH_SAVE_PATH + to_string(index) + "_keypoints_selected.txt";
 		auto keypoints_file = fopen(keypoints_path.c_str(), "r");
 		auto pointid_path = POSE_GRAPH_SAVE_PATH + to_string(index) + "_pointid.txt";
 		auto pointid_file = fopen(pointid_path.c_str(), "r");
@@ -243,7 +193,7 @@ void CloudPointMap::loadPoseGraph()
 			point_2d_uv.emplace_back(p_x, p_y);
 			point_2d_normal.emplace_back(p_x_norm, p_y_norm);
 			point_id.emplace_back(id);
-			pnt = mpointidmap[id];
+			pnt = point_map_[id];
 			point_3d.emplace_back(pnt[0], pnt[1],pnt[2]);
 
 		}
@@ -251,13 +201,6 @@ void CloudPointMap::loadPoseGraph()
 		KeyFrame* keyframe = new KeyFrame(time_stamp, index, PG_T, PG_R, image,
 									   point_3d, point_2d_uv, point_2d_normal, point_id, sequence);
 		loadKeyFrame(keyframe, 0);
-
-//        KeyFrame* keyframe = new KeyFrame(time_stamp, index, VIO_T, VIO_R, PG_T, PG_R, image, loop_index, loop_info, keypoints, keypoints_norm, brief_descriptors);
-//        loadKeyFrame(keyframe, 0);
-//        if (cnt % 20 == 0)
-//        {
-//            publish();
-//        }
         cnt++;
     }
     fclose (pFile);
