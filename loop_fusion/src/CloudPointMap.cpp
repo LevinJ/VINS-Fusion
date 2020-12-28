@@ -7,11 +7,31 @@
 
 #include "CloudPointMap.h"
 #include "utility/utility.h"
+#include "utility/LoopInfoLogging.h"
+#include <thread>
+#include <mutex>
+#include <memory>
+#include "../../vins_estimator/src/estimator/VOStateSubscriber.h"
+#include "utility/PoseInfo.h"
 
 using namespace std;
 
 extern int DEBUG_IMAGE;
 extern std::string POSE_GRAPH_SAVE_PATH;
+extern std::string BRIEF_PATTERN_FILE;
+extern camodocal::CameraPtr m_camera;
+extern LoopInfoLogging g_loop_info_logging;
+extern int ROW;
+extern int COL;
+extern std::string VINS_LOOP_RESULT_PATH;
+extern std::string RAW_DATA_PATH;
+
+extern std::string OUTPUT_FOLDER;
+extern Eigen::Vector3d tic;
+extern Eigen::Matrix3d qic;
+
+//extern int LOAD_PREVIOUS_POSE_GRAPH;
+//extern int USE_IMU;
 
 CloudPointMap::CloudPointMap(): PoseGraph(){
 	// TODO Auto-generated constructor stub
@@ -98,7 +118,58 @@ void CloudPointMap::publish_cloudponint(ros::Publisher &_pub_base_point_cloud){
 CloudPointMap::~CloudPointMap() {
 	// TODO Auto-generated destructor stub
 }
+void CloudPointMap::init(std::string config_file, std::string pkg_path){
+	cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
+	if(!fsSettings.isOpened())
+	{
+		std::cerr << "ERROR: Wrong path to settings" << std::endl;
+	}
+	ROW = fsSettings["image_height"];
+	COL = fsSettings["image_width"];
 
+	string vocabulary_file = pkg_path + "/../support_files/brief_k10L6.bin";
+	cout << "vocabulary_file" << vocabulary_file << endl;
+	this->loadVocabulary(vocabulary_file);
+
+	BRIEF_PATTERN_FILE = pkg_path + "/../support_files/brief_pattern.yml";
+	cout << "BRIEF_PATTERN_FILE" << BRIEF_PATTERN_FILE << endl;
+
+	int pn = config_file.find_last_of('/');
+	std::string configPath = config_file.substr(0, pn);
+	std::string cam0Calib;
+	fsSettings["cam0_calib"] >> cam0Calib;
+	std::string cam0Path = configPath + "/" + cam0Calib;
+	printf("cam calib path: %s\n", cam0Path.c_str());
+	m_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(cam0Path.c_str());
+
+//	fsSettings["image0_topic"] >> IMAGE_TOPIC;
+	fsSettings["pose_graph_save_path"] >> POSE_GRAPH_SAVE_PATH;
+	fsSettings["output_path"] >> VINS_LOOP_RESULT_PATH;
+	fsSettings["save_image"] >> DEBUG_IMAGE;
+	fsSettings["raw_data_path"] >> RAW_DATA_PATH;
+
+	cv::Mat cv_T;
+	fsSettings["body_T_cam0"] >> cv_T;
+	Eigen::Matrix4d T;
+	cv::cv2eigen(cv_T, T);
+	qic = T.block<3, 3>(0, 0);
+	tic = T.block<3, 1>(0, 3);
+
+//	LOAD_PREVIOUS_POSE_GRAPH = fsSettings["load_previous_pose_graph"];
+//	FUSE_GNSS = fsSettings["fuse_gnss"];
+	VINS_LOOP_RESULT_PATH = VINS_LOOP_RESULT_PATH + "/vio_reloc.csv";
+	std::ofstream fout(VINS_LOOP_RESULT_PATH, std::ios::out);
+	fout.close();
+
+	point_cloud_path_ = POSE_GRAPH_SAVE_PATH + "vlsam_pcd.pcd";
+
+	printf("load pose graph\n");
+	this->loadPoseGraph();
+	printf("load pose graph finish\n");
+	g_loop_info_logging.init();
+	process_thread_ =  std::thread(&CloudPointMap::process, this);
+
+}
 void CloudPointMap::loadPoseGraph()
 {
 	loadPointCloud();
@@ -208,284 +279,158 @@ void CloudPointMap::loadPoseGraph()
     base_sequence = 0;
 }
 
-void CloudPointMap::reloc_frame(KeyFrame* keyframe){
-	addKeyFrame(keyframe, 1);
-}
-
-void CloudPointMap::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
-{
-    //shift to base frame
-    Vector3d vio_P_cur;
-    Matrix3d vio_R_cur;
-    if (sequence_cnt != cur_kf->sequence)
-    {
-        sequence_cnt++;
-        sequence_loop.push_back(0);
-        w_t_vio = Eigen::Vector3d(0, 0, 0);
-        w_r_vio = Eigen::Matrix3d::Identity();
-        m_drift.lock();
-        t_drift = Eigen::Vector3d(0, 0, 0);
-        r_drift = Eigen::Matrix3d::Identity();
-        m_drift.unlock();
-    }
-
-    cur_kf->getVioPose(vio_P_cur, vio_R_cur);
-    vio_P_cur = w_r_vio * vio_P_cur + w_t_vio;
-    vio_R_cur = w_r_vio *  vio_R_cur;
-    cur_kf->updateVioPose(vio_P_cur, vio_R_cur);
-    cur_kf->index = global_index;
-    global_index++;
-	int loop_index = -1;
-    if (flag_detect_loop)
-    {
-        TicToc tmp_t;
-        loop_index = detectLoop(cur_kf, cur_kf->index);
-//        cout<<"detectloop="<<tmp_t.toc()<<endl;
-    }
-    else
-    {
-        addKeyFrameIntoVoc(cur_kf);
-    }
-	if (loop_index != -1)
+void CloudPointMap::process(){
+	while (true)
 	{
-        printf(" %d detect loop with %d \n", cur_kf->index, loop_index);
-        KeyFrame* old_kf = getKeyFrame(loop_index);
-//        Vector3d w_P_loop;
-//        Matrix3d w_R_loop;
-//        old_kf->getPose(w_P_loop,w_R_loop );
-//        cur_kf->updateVioPose(w_P_loop, w_R_loop);
-
-        TicToc tmp_t;
-        bool bfindconn = old_kf->findConnection(cur_kf);
-//        bool bfindconn = cur_kf->findConnection(old_kf);
-        cout<<"findConnection="<<tmp_t.toc()<<endl;
-        if (bfindconn)
-        {
-            if (earliest_loop_index > loop_index || earliest_loop_index == -1)
-                earliest_loop_index = loop_index;
-
-            Vector3d w_P_old, w_P_cur, vio_P_cur;
-            Matrix3d w_R_old, w_R_cur, vio_R_cur;
-            old_kf->getVioPose(w_P_old, w_R_old);
-            cur_kf->getVioPose(vio_P_cur, vio_R_cur);
-
-            //from findconnection, we can relative pose, current <-- old, we will convert it old <--cur
-            Vector3d relative_t;
-            Quaterniond relative_q;
-            relative_q = (old_kf->getLoopRelativeQ()).toRotationMatrix().transpose();
-            relative_t = -(old_kf->getLoopRelativeQ()).toRotationMatrix().transpose() * old_kf->getLoopRelativeT();
-
-
-
-            w_P_cur = w_R_old * relative_t + w_P_old;
-            w_R_cur = w_R_old * relative_q;
-            auto relative_yaw = Utility::normalizeAngle(Utility::R2ypr(w_R_cur).x() - Utility::R2ypr(w_R_old).x());
-            cout << "current pos = " << w_P_cur.transpose()<<",yaw="<< relative_yaw << endl;
-
-//            double shift_yaw;
-//            Matrix3d shift_r;
-//            Vector3d shift_t;
-//            if(use_imu)
-//            {
-//                shift_yaw = Utility::R2ypr(w_R_cur).x() - Utility::R2ypr(vio_R_cur).x();
-//                shift_r = Utility::ypr2R(Vector3d(shift_yaw, 0, 0));
-//            }
-//            else
-//                shift_r = w_R_cur * vio_R_cur.transpose();
-//            shift_t = w_P_cur - w_R_cur * vio_R_cur.transpose() * vio_P_cur;
-//            // shift vio pose of whole sequence to the world frame
-//            if (old_kf->sequence != cur_kf->sequence && sequence_loop[cur_kf->sequence] == 0)
-//            {
-//                w_r_vio = shift_r;
-//                w_t_vio = shift_t;
-//                vio_P_cur = w_r_vio * vio_P_cur + w_t_vio;
-//                vio_R_cur = w_r_vio *  vio_R_cur;
-//                cur_kf->updateVioPose(vio_P_cur, vio_R_cur);
-//                list<KeyFrame*>::iterator it = keyframelist.begin();
-//                for (; it != keyframelist.end(); it++)
-//                {
-//                    if((*it)->sequence == cur_kf->sequence)
-//                    {
-//                        Vector3d vio_P_cur;
-//                        Matrix3d vio_R_cur;
-//                        (*it)->getVioPose(vio_P_cur, vio_R_cur);
-//                        vio_P_cur = w_r_vio * vio_P_cur + w_t_vio;
-//                        vio_R_cur = w_r_vio *  vio_R_cur;
-//                        (*it)->updateVioPose(vio_P_cur, vio_R_cur);
-//                    }
-//                }
-//                sequence_loop[cur_kf->sequence] = 1;
-//            }
-////            m_optimize_buf.lock();
-////            optimize_buf.push(cur_kf->index);
-////            m_optimize_buf.unlock();
-        }
+		while (image_buf_.empty()){
+			std::chrono::milliseconds dura(5);
+			std::this_thread::sleep_for(dura);
+		}
+		std::shared_ptr<ImageInfo> last_img;
+		{
+			const std::lock_guard<std::mutex> lock(buf_mutext_);
+			last_img = image_buf_.front();
+			image_buf_.pop();
+		}
+		process_img(last_img);
 	}
-//	m_keyframelist.lock();
-//    Vector3d P;
-//    Matrix3d R;
-//    cur_kf->getVioPose(P, R);
-//    P = r_drift * P + t_drift;
-//    R = r_drift * R;
-//    cur_kf->updatePose(P, R);
-//    Quaterniond Q{R};
-//    geometry_msgs::PoseStamped pose_stamped;
-//    pose_stamped.header.stamp = ros::Time(cur_kf->time_stamp);
-//    pose_stamped.header.frame_id = "world";
-//    pose_stamped.pose.position.x = P.x() + VISUALIZATION_SHIFT_X;
-//    pose_stamped.pose.position.y = P.y() + VISUALIZATION_SHIFT_Y;
-//    pose_stamped.pose.position.z = P.z();
-//    pose_stamped.pose.orientation.x = Q.x();
-//    pose_stamped.pose.orientation.y = Q.y();
-//    pose_stamped.pose.orientation.z = Q.z();
-//    pose_stamped.pose.orientation.w = Q.w();
-//    path[sequence_cnt].poses.push_back(pose_stamped);
-//    path[sequence_cnt].header = pose_stamped.header;
-//
-//    if (SAVE_LOOP_PATH)
-//    {
-//        ofstream loop_path_file(VINS_RESULT_PATH, ios::app);
-//        loop_path_file.setf(ios::fixed, ios::floatfield);
-//        //TUM format
-//        loop_path_file.precision(6);
-//		loop_path_file << cur_kf->time_stamp << " ";
-//		loop_path_file.precision(7);
-//		loop_path_file  << P.x() << " "
-//			  << P.y() << " "
-//			  << P.z() << " "
-//			  << Q.x() << " "
-//			  << Q.y() << " "
-//			  << Q.z() << " "
-//			  << Q.w()<< endl;
-//
-//        loop_path_file.close();
-//    }
-//    //draw local connection
-//    if (SHOW_S_EDGE)
-//    {
-//        list<KeyFrame*>::reverse_iterator rit = keyframelist.rbegin();
-//        for (int i = 0; i < 4; i++)
-//        {
-//            if (rit == keyframelist.rend())
-//                break;
-//            Vector3d conncected_P;
-//            Matrix3d connected_R;
-//            if((*rit)->sequence == cur_kf->sequence)
-//            {
-//                (*rit)->getPose(conncected_P, connected_R);
-//                posegraph_visualization->add_edge(P, conncected_P);
-//            }
-//            rit++;
-//        }
-//    }
-//    if (SHOW_L_EDGE)
-//    {
-//        if (cur_kf->has_loop)
-//        {
-//            //printf("has loop \n");
-//            KeyFrame* connected_KF = getKeyFrame(cur_kf->loop_index);
-//            Vector3d connected_P,P0;
-//            Matrix3d connected_R,R0;
-//            connected_KF->getPose(connected_P, connected_R);
-//            //cur_kf->getVioPose(P0, R0);
-//            cur_kf->getPose(P0, R0);
-//            if(cur_kf->sequence > 0)
-//            {
-//                //printf("add loop into visual \n");
-//                posegraph_visualization->add_loopedge(P0, connected_P + Vector3d(VISUALIZATION_SHIFT_X, VISUALIZATION_SHIFT_Y, 0));
-//            }
-//
-//        }
-//    }
-//    //posegraph_visualization->add_pose(P + Vector3d(VISUALIZATION_SHIFT_X, VISUALIZATION_SHIFT_Y, 0), Q);
-//
-//	keyframelist.push_back(cur_kf);
-//    publish();
-//	m_keyframelist.unlock();
-}
 
+}
+void CloudPointMap::process_img(std::shared_ptr<ImageInfo> last_img){
+	KeyFrame* cur_kf = new KeyFrame(last_img->t_, global_index, last_img->img_, 1);
+	global_index++;
+	TicToc tmp_t;
+	auto loop_index = detectLoop(cur_kf, cur_kf->index);
+	//	cout<<"detectloop="<<tmp_t.toc()<<endl;
+	if (loop_index == -1){
+		return;
+	}
+
+	//find connections
+	KeyFrame* old_kf = getKeyFrame(loop_index);
+	cout << "loop detected, " <<cur_kf->sequence<<", "<< cur_kf->index<< "-->"<< old_kf->sequence<<", "<<old_kf->index<<endl;
+	tmp_t.tic();
+	bool bfindconn = old_kf->findConnection(cur_kf);
+	//	cout<<"findConnection="<<tmp_t.toc()<<endl;
+	if (!bfindconn){
+		return;
+	}
+	Vector3d relative_t;
+	Quaterniond relative_q;
+	relative_t = old_kf->getLoopRelativeT();
+	relative_q = (old_kf->getLoopRelativeQ());
+
+	auto TCO = PoseInfo().construct_fromqt(relative_q, relative_t);
+	auto TOC = TCO.I();
+	auto TWO = PoseInfo().construct_fromRt(old_kf->R_w_i, old_kf->T_w_i);
+	auto TWC = TWO * TCO.I();
+
+	Quaterniond Q = TWC.q_;
+	Vector3d P = TWC.t_;
+
+
+	//TUM format
+	ofstream loop_path_file(VINS_LOOP_RESULT_PATH, ios::app);
+	loop_path_file.setf(ios::fixed, ios::floatfield);
+	loop_path_file.precision(6);
+	loop_path_file << cur_kf->time_stamp << " ";
+	loop_path_file.precision(7);
+	loop_path_file  << P.x() << " "
+			<< P.y() << " "
+			<< P.z() << " "
+			<< Q.x() << " "
+			<< Q.y() << " "
+			<< Q.z() << " "
+			<< Q.w()<< endl;
+
+	loop_path_file.close();
+}
+void CloudPointMap::reloc(double t, cv::Mat &img){
+	const std::lock_guard<std::mutex> lock(buf_mutext_);
+	auto im_info_ptr = std::make_shared<ImageInfo>();
+	im_info_ptr->t_ = t;
+	im_info_ptr->img_ = img;
+	image_buf_.push(im_info_ptr);
+}
 
 int CloudPointMap::detectLoop(KeyFrame* keyframe, int frame_index)
 {
-    // put image into image_pool; for visualization
-    cv::Mat compressed_image;
-    if (DEBUG_IMAGE)
-    {
-        int feature_num = keyframe->keypoints.size();
-        cv::resize(keyframe->image, compressed_image, cv::Size(376, 240));
-        putText(compressed_image, "feature_num:" + to_string(feature_num), cv::Point2f(10, 10), CV_FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255));
-        image_pool[frame_index] = compressed_image;
-    }
-    TicToc tmp_t;
-    //first query; then add this frame into database!
-    QueryResults ret;
-    TicToc t_query;
-    db.query(keyframe->brief_descriptors, ret, 4, frame_index - 50);
-    //printf("query time: %f", t_query.toc());
-    //cout << "Searching for Image " << frame_index << ". " << ret << endl;
+	// put image into image_pool; for visualization
+	    cv::Mat compressed_image;
+	    if (DEBUG_IMAGE)
+	    {
+	        int feature_num = keyframe->keypoints.size();
+	        cv::resize(keyframe->image, compressed_image, cv::Size(376, 240));
+	        putText(compressed_image, "feature_num:" + to_string(feature_num), cv::Point2f(10, 10), CV_FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255));
+	        image_pool[frame_index] = compressed_image;
+	    }
+	    TicToc tmp_t;
+	    //first query; then add this frame into database!
+	    QueryResults ret;
+	    TicToc t_query;
+	    db.query(keyframe->brief_descriptors, ret, 4, frame_index);
+	    //printf("query time: %f", t_query.toc());
+	    //cout << "Searching for Image " << frame_index << ". " << ret << endl;
 
-//    TicToc t_add;
-//    db.add(keyframe->brief_descriptors);
-    //printf("add feature time: %f", t_add.toc());
-    // ret[0] is the nearest neighbour's score. threshold change with neighour score
-    bool find_loop = false;
-    cv::Mat loop_result;
-    if (DEBUG_IMAGE)
-    {
-        loop_result = compressed_image.clone();
-        if (ret.size() > 0)
-            putText(loop_result, "neighbour score:" + to_string(ret[0].Score), cv::Point2f(10, 50), CV_FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255));
-    }
-    // visual loop result
-    if (DEBUG_IMAGE)
-    {
-        for (unsigned int i = 0; i < ret.size(); i++)
-        {
-            int tmp_index = ret[i].Id;
-            auto it = image_pool.find(tmp_index);
-            cv::Mat tmp_image = (it->second).clone();
-            putText(tmp_image, "index:  " + to_string(tmp_index) + "loop score:" + to_string(ret[i].Score), cv::Point2f(10, 50), CV_FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255));
-            cv::vconcat(loop_result, tmp_image, loop_result);
-        }
-    }
-    // a good match with its nerghbour
-    if (ret.size() >= 1 &&ret[0].Score > 0.05)
-        for (unsigned int i = 1; i < ret.size(); i++)
-        {
-            //if (ret[i].Score > ret[0].Score * 0.3)
-            if (ret[i].Score > 0.015)
-            {
-                find_loop = true;
-                int tmp_index = ret[i].Id;
-                if (DEBUG_IMAGE && 0)
-                {
-                    auto it = image_pool.find(tmp_index);
-                    cv::Mat tmp_image = (it->second).clone();
-                    putText(tmp_image, "loop score:" + to_string(ret[i].Score), cv::Point2f(10, 50), CV_FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255));
-                    cv::vconcat(loop_result, tmp_image, loop_result);
-                }
-            }
+	    // ret[0] is the nearest neighbour's score. threshold change with neighour score
+	    bool find_loop = false;
+	    cv::Mat loop_result;
+	    if (DEBUG_IMAGE)
+	    {
+	        loop_result = compressed_image.clone();
+	        if (ret.size() > 0)
+	            putText(loop_result, "neighbour score:" + to_string(ret[0].Score), cv::Point2f(10, 50), CV_FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255));
+	    }
+	    // visual loop result
+	    if (DEBUG_IMAGE)
+	    {
+	        for (unsigned int i = 0; i < ret.size(); i++)
+	        {
+	            int tmp_index = ret[i].Id;
+	            auto it = image_pool.find(tmp_index);
+	            cv::Mat tmp_image = (it->second).clone();
+	            putText(tmp_image, "index:  " + to_string(tmp_index) + "loop score:" + to_string(ret[i].Score), cv::Point2f(10, 50), CV_FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255));
+	            cv::hconcat(loop_result, tmp_image, loop_result);
+	        }
+	    }
+	    // a good match with its nerghbour
+	    if (ret.size() >= 1 &&ret[0].Score > 0.05)
+	        for (unsigned int i = 1; i < ret.size(); i++)
+	        {
+	            //if (ret[i].Score > ret[0].Score * 0.3)
+	            if (ret[i].Score > 0.015)
+	            {
+	                find_loop = true;
+	                int tmp_index = ret[i].Id;
+	                if (DEBUG_IMAGE && 0)
+	                {
+	                    auto it = image_pool.find(tmp_index);
+	                    cv::Mat tmp_image = (it->second).clone();
+	                    putText(tmp_image, "loop score:" + to_string(ret[i].Score), cv::Point2f(10, 50), CV_FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255));
+	                    cv::hconcat(loop_result, tmp_image, loop_result);
+	                }
+	            }
 
-        }
+	        }
 
-    if (DEBUG_IMAGE)
-    {
-        cv::imshow("loop_result", loop_result);
-        cv::waitKey(0);
-    }
+	    if (DEBUG_IMAGE)
+	    {
+	        cv::imshow("loop_result", loop_result);
+	        cv::waitKey(20);
+	    }
 
-    if (find_loop && frame_index > 50)
-    {
-        int min_index = -1;
-        for (unsigned int i = 0; i < ret.size(); i++)
-        {
-            if (min_index == -1 || (ret[i].Id < min_index && ret[i].Score > 0.015))
-                min_index = ret[i].Id;
-        }
-        return min_index;
-    }
-    else
-        return -1;
+	    if (find_loop)
+	    {
+	        int min_index = -1;
+	        for (unsigned int i = 0; i < ret.size(); i++)
+	        {
+	            if (min_index == -1 || (int(ret[i].Id) < min_index && ret[i].Score > 0.015))
+	                min_index = ret[i].Id;
+	        }
+	        return min_index;
+	    }
+	    else
+	        return -1;
 
 }
 

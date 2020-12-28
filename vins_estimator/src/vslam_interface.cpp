@@ -2,6 +2,7 @@
 #include "estimator/estimator.h"
 #include "utility/visualization.h"
 #include "../../loop_fusion/src/LoopFusion.h"
+#include "../../loop_fusion/src/CloudPointMap.h"
 
 #include <memory>
 
@@ -10,6 +11,8 @@ using namespace Eigen;
 
 static std::shared_ptr<Estimator> g_est_ptr;
 static std::shared_ptr<LoopFusion> g_lf_ptr;
+
+static std::shared_ptr<CloudPointMap> g_pcm_ptr;
 
 
 void init_estimator(std::string config_file){
@@ -50,4 +53,12 @@ void register_vo_callbacks(std::function<void(OdomExtrinsicInfo &)> odom_extric_
 		vo_cbs->img_info_f_ = img_info_f;
 	}
 	g_est_ptr->vo_state_subs_.register_sub(vo_cbs);
+}
+
+void init_reloc(std::string config_file, std::string loop_fution_path){
+	g_pcm_ptr = std::make_shared<CloudPointMap>();
+	g_pcm_ptr->init(config_file, loop_fution_path);
+}
+void reloc_image(double _time_stamp, cv::Mat &_image){
+	g_pcm_ptr->reloc(_time_stamp, _image);
 }

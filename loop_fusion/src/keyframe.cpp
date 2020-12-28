@@ -18,6 +18,7 @@ extern LoopInfoLogging g_loop_info_logging;
 //#include "parameters.h"
 #include "loop_fusion/FindConnectionInfo.h"
 #include "loop_fusion/PointUV.h"
+#include <sstream>
 
 extern ros::Publisher pub_findconnectioninfo_img;
 
@@ -110,7 +111,23 @@ KeyFrame::KeyFrame(double _time_stamp, int _index, Vector3d &_vio_T_w_i, Matrix3
 	if(!DEBUG_IMAGE)
 		image.release();
 }
+KeyFrame::KeyFrame(double _time_stamp, int _index,cv::Mat &_image, int _sequence){
+	time_stamp = _time_stamp;
+	index = _index;
+	image = _image.clone();
+	cv::resize(image, thumbnail, cv::Size(80, 60));
 
+	has_loop = false;
+	loop_index = -1;
+	has_fast_point = false;
+	loop_info << 0, 0, 0, 0, 0, 0, 0, 0;
+	sequence = _sequence;
+
+	computeBRIEFPoint();
+	if(!DEBUG_IMAGE)
+		image.release();
+
+}
 // load previous keyframe
 KeyFrame::KeyFrame(double _time_stamp, int _index, Vector3d &_vio_T_w_i, Matrix3d &_vio_R_w_i, Vector3d &_T_w_i, Matrix3d &_R_w_i,
 					cv::Mat &_image, int _loop_index, Eigen::Matrix<double, 8, 1 > &_loop_info,
@@ -503,6 +520,9 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	    reduceVector(matched_2d_old_norm, status);
 	    reduceVector(matched_3d, status);
 	    reduceVector(matched_id, status);
+	    relative_t = PnP_R_old.transpose() * (origin_vio_T - PnP_T_old);
+		relative_q = PnP_R_old.transpose() * origin_vio_R;
+		relative_yaw = Utility::normalizeAngle(Utility::R2ypr(origin_vio_R).x() - Utility::R2ypr(PnP_R_old).x());
 	    #if 1
 	    	if (DEBUG_IMAGE)
 	        {
@@ -539,7 +559,13 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	                cv::line(loop_match_img, matched_2d_cur[i], old_pt, cv::Scalar(0, 255, 0), 2, 8, 0);
 	            }
 	            cv::Mat notation(50, COL + gap + COL, CV_8UC3, cv::Scalar(255, 255, 255));
-	            putText(notation, "current frame: " + to_string(index) + "  sequence: " + to_string(sequence), cv::Point2f(20, 30), CV_FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255), 3);
+	            std::stringstream ss;
+	            ss.precision(2);
+	            ss<<"current frame: " << to_string(index) << "  sequence: " << to_string(sequence)
+	            		<<", match:" << to_string((int)matched_2d_cur.size())
+						<< ",t: " << relative_t.norm() << ",yaw: " << relative_yaw;
+	            putText(notation, ss.str().c_str(),
+	            		cv::Point2f(20, 30), CV_FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255), 3);
 
 	            putText(notation, "previous frame: " + to_string(old_kf->index) + "  sequence: " + to_string(old_kf->sequence), cv::Point2f(20 + COL + gap, 30), CV_FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255), 3);
 	            cv::vconcat(notation, loop_match_img, loop_match_img);
@@ -570,9 +596,6 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 
 	if ((int)matched_2d_cur.size() > MIN_LOOP_NUM)
 	{
-	    relative_t = PnP_R_old.transpose() * (origin_vio_T - PnP_T_old);
-	    relative_q = PnP_R_old.transpose() * origin_vio_R;
-	    relative_yaw = Utility::normalizeAngle(Utility::R2ypr(origin_vio_R).x() - Utility::R2ypr(PnP_R_old).x());
 	    //printf("PNP relative\n");
 	    //cout << "pnp relative_t " << relative_t.transpose() << endl;
 	    //cout << "pnp relative_yaw " << relative_yaw << endl;

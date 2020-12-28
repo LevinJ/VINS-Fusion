@@ -16,3 +16,8 @@ void inputImage(double t, const cv::Mat &  img1, const cv::Mat &img2 = cv::Mat()
 void create_map();
 void register_vo_callbacks(std::function<void(OdomExtrinsicInfo &)> odom_extric_f,
 		std::function<void(KeyframeInfo &)> key_frame_info_f_, std::function<void(ImageInfo &)> img_info_f);
+//interfaces for localization
+
+void init_reloc(std::string config_file, std::string loop_fution_path);
+void reloc_image(double _time_stamp, cv::Mat &_image);
+

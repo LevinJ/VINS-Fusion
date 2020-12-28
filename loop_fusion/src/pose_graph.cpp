@@ -189,6 +189,7 @@ void PoseGraph::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
 	{
         //printf(" %d detect loop with %d \n", cur_kf->index, loop_index);
         KeyFrame* old_kf = getKeyFrame(loop_index);
+        cout << "loop detected, " <<cur_kf->sequence<<", "<< cur_kf->index<< "-->"<< old_kf->sequence<<", "<<old_kf->index<<endl;
         TicToc tmp_t;
         bool bfindconn = cur_kf->findConnection(old_kf);
         cout<<"findConnection="<<tmp_t.toc()<<endl;
@@ -517,13 +518,13 @@ int PoseGraph::detectLoop(KeyFrame* keyframe, int frame_index)
             }
 
         }
-/*
+
     if (DEBUG_IMAGE)
     {
         cv::imshow("loop_result", loop_result);
         cv::waitKey(20);
     }
-*/
+
     if (find_loop && frame_index > 50)
     {
         int min_index = -1;

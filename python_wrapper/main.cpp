@@ -82,6 +82,10 @@ void inputImage_nparr(double t, py::array_t<uint8_t> &  img1, py::array_t<uint8_
 	inputImage(t, m1, m2);
 }
 
+void reloc_image_nparr(double t, py::array_t<uint8_t> &  img1){
+	cv::Mat m1 = (getMat(img1)).clone();
+	reloc_image(t, m1);
+}
 
 
 PYBIND11_MODULE(vslam, m) {
@@ -132,5 +136,7 @@ PYBIND11_MODULE(vslam, m) {
     m.def("init_loop_fusion", &init_loop_fusion);
     m.def("create_map", &create_map);
     m.def("register_vo_callbacks", &register_vo_callbacks);
+    m.def("init_reloc", &init_reloc);
+    m.def("reloc_image_nparr", &reloc_image_nparr);
 
 }
