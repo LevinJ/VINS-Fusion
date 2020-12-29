@@ -34,7 +34,9 @@ void inputIMU(double t, const Vector3d &linearAcceleration, const Vector3d &angu
 	g_est_ptr->inputIMU(t, linearAcceleration, angularVelocity);
 //	g_est.inputIMU(t, linearAcceleration, angularVelocity);
 }
-void inputImage(double t, const cv::Mat &  img1, const cv::Mat &  img2){
+void inputImage(double t, const cv::Mat &  _img1, const cv::Mat &  _img2){
+	auto img1 = _img1.clone();
+	auto img2 = _img2.clone();
 	g_est_ptr->inputImage(t, img1, img2);
 //	g_est.inputImage(t, img1);
 }
