@@ -388,6 +388,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	            old_pt.x += COL;
 	            cv::circle(loop_match_img, old_pt, 5, cv::Scalar(0, 255, 0));
 	        }
+	        find_conn_1_ = loop_match_img;
 	        ostringstream path;
 	        path << "/home/levin/raw_data/loop_image/"
 	                << index << "-"
@@ -440,7 +441,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	            old_pt.x +=  (COL + gap);
 	            cv::line(loop_match_img, matched_2d_cur[i], old_pt, cv::Scalar(0, 255, 0), 1, 8, 0);
 	        }
-
+	        find_conn_2_ = loop_match_img;
 	        ostringstream path, path1, path2;
 	        path <<  "/home/levin/raw_data/loop_image/"
 	                << index << "-"
@@ -570,7 +571,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	            putText(notation, "previous frame: " + to_string(old_kf->index) + "  sequence: " + to_string(old_kf->sequence), cv::Point2f(20 + COL + gap, 30), CV_FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255), 3);
 	            cv::vconcat(notation, loop_match_img, loop_match_img);
 
-
+	            find_conn_3_ = loop_match_img;
 	            path <<  "/home/levin/raw_data/loop_image/"
 	                    << index << "-"
 	                    << old_kf->index << "-" << "3pnp_match.jpg";

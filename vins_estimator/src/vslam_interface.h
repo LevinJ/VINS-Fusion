@@ -8,6 +8,7 @@
 class OdomExtrinsicInfo;
 class KeyframeInfo;
 class ImageInfo;
+class LPInfo;
 
 void init_estimator(std::string config_file);
 void init_loop_fusion(std::string loop_fution_path);
@@ -20,4 +21,5 @@ void register_vo_callbacks(std::function<void(OdomExtrinsicInfo &)> odom_extric_
 
 void init_reloc(std::string config_file, std::string loop_fution_path);
 void reloc_image(double _time_stamp, cv::Mat &_image);
+void reloc_callback(std::function<void(LPInfo)> cb);
 

@@ -3,11 +3,14 @@
 #include "utility/visualization.h"
 #include "../../loop_fusion/src/LoopFusion.h"
 #include "../../loop_fusion/src/CloudPointMap.h"
+#include "../../loop_fusion/src/LPStateSubscriber.h"
 
 #include <memory>
 
 using namespace std;
 using namespace Eigen;
+
+extern LPStateSubscribers g_lp_state_subscriber;
 
 static std::shared_ptr<Estimator> g_est_ptr;
 static std::shared_ptr<LoopFusion> g_lf_ptr;
@@ -61,4 +64,8 @@ void init_reloc(std::string config_file, std::string loop_fution_path){
 }
 void reloc_image(double _time_stamp, cv::Mat &_image){
 	g_pcm_ptr->reloc(_time_stamp, _image);
+}
+
+void reloc_callback(std::function<void(LPInfo)> cb){
+	g_lp_state_subscriber.lp_state_subs2.push_back(cb);
 }

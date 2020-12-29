@@ -51,6 +51,12 @@ LPStateSubscribers::~LPStateSubscribers() {
 	// TODO Auto-generated destructor stub
 }
 
+void LPStateSubscribers::do_callback(){
+	for(auto &sub : lp_state_subs2){
+		sub(lp_info_);
+	}
+}
+
 void LPStateSubscribers::update_loop_info(KeyFrame * cur_kf, KeyFrame * old_kf, const std::string &match_file){
 	for(auto &sub : subs_){
 		sub->update_loop_info(cur_kf, old_kf, match_file);

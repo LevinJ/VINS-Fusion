@@ -13,6 +13,7 @@
 #include <memory>
 #include "../../vins_estimator/src/estimator/VOStateSubscriber.h"
 #include "utility/PoseInfo.h"
+#include "LPStateSubscriber.h"
 
 using namespace std;
 
@@ -32,6 +33,8 @@ extern Eigen::Matrix3d qic;
 
 //extern int LOAD_PREVIOUS_POSE_GRAPH;
 //extern int USE_IMU;
+
+extern LPStateSubscribers g_lp_state_subscriber;
 
 CloudPointMap::CloudPointMap(): PoseGraph(){
 	// TODO Auto-generated constructor stub
@@ -301,8 +304,11 @@ void CloudPointMap::process_img(std::shared_ptr<ImageInfo> last_img){
 	global_index++;
 	TicToc tmp_t;
 	auto loop_index = detectLoop(cur_kf, cur_kf->index);
+	g_lp_state_subscriber.lp_info_.lp_detection_img_ = loop_result_;
+	g_lp_state_subscriber.lp_info_.bloop_detected_ = (loop_index != -1);
 	//	cout<<"detectloop="<<tmp_t.toc()<<endl;
 	if (loop_index == -1){
+		g_lp_state_subscriber.do_callback();
 		return;
 	}
 
@@ -311,8 +317,13 @@ void CloudPointMap::process_img(std::shared_ptr<ImageInfo> last_img){
 	cout << "loop detected, " <<cur_kf->sequence<<", "<< cur_kf->index<< "-->"<< old_kf->sequence<<", "<<old_kf->index<<endl;
 	tmp_t.tic();
 	bool bfindconn = old_kf->findConnection(cur_kf);
+	g_lp_state_subscriber.lp_info_.bconn_founded_ = bfindconn;
+	g_lp_state_subscriber.lp_info_.find_conn_1_ = old_kf->find_conn_1_;
+	g_lp_state_subscriber.lp_info_.find_conn_2_ = old_kf->find_conn_2_;
+	g_lp_state_subscriber.lp_info_.find_conn_3_ = old_kf->find_conn_3_;
 	//	cout<<"findConnection="<<tmp_t.toc()<<endl;
 	if (!bfindconn){
+		g_lp_state_subscriber.do_callback();
 		return;
 	}
 	Vector3d relative_t;
@@ -344,6 +355,10 @@ void CloudPointMap::process_img(std::shared_ptr<ImageInfo> last_img){
 			<< Q.w()<< endl;
 
 	loop_path_file.close();
+
+	g_lp_state_subscriber.lp_info_.P_ = P;
+	g_lp_state_subscriber.lp_info_.R_ = Q;
+	g_lp_state_subscriber.do_callback();
 }
 void CloudPointMap::reloc(double t, cv::Mat &img){
 	const std::lock_guard<std::mutex> lock(buf_mutext_);
@@ -361,7 +376,7 @@ int CloudPointMap::detectLoop(KeyFrame* keyframe, int frame_index)
 	    {
 	        int feature_num = keyframe->keypoints.size();
 	        cv::resize(keyframe->image, compressed_image, cv::Size(376, 240));
-	        putText(compressed_image, "feature_num:" + to_string(feature_num), cv::Point2f(10, 10), CV_FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255));
+	        putText(compressed_image, "index:  " + to_string(keyframe->index) +"feature_num:" + to_string(feature_num), cv::Point2f(10, 10), CV_FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255));
 	        image_pool[frame_index] = compressed_image;
 	    }
 	    TicToc tmp_t;
@@ -374,12 +389,11 @@ int CloudPointMap::detectLoop(KeyFrame* keyframe, int frame_index)
 
 	    // ret[0] is the nearest neighbour's score. threshold change with neighour score
 	    bool find_loop = false;
-	    cv::Mat loop_result;
 	    if (DEBUG_IMAGE)
 	    {
-	        loop_result = compressed_image.clone();
+	        loop_result_ = compressed_image.clone();
 	        if (ret.size() > 0)
-	            putText(loop_result, "neighbour score:" + to_string(ret[0].Score), cv::Point2f(10, 50), CV_FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255));
+	            putText(loop_result_, "neighbour score:" + to_string(ret[0].Score), cv::Point2f(10, 50), CV_FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255));
 	    }
 	    // visual loop result
 	    if (DEBUG_IMAGE)
@@ -390,7 +404,7 @@ int CloudPointMap::detectLoop(KeyFrame* keyframe, int frame_index)
 	            auto it = image_pool.find(tmp_index);
 	            cv::Mat tmp_image = (it->second).clone();
 	            putText(tmp_image, "index:  " + to_string(tmp_index) + "loop score:" + to_string(ret[i].Score), cv::Point2f(10, 50), CV_FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255));
-	            cv::hconcat(loop_result, tmp_image, loop_result);
+	            cv::hconcat(loop_result_, tmp_image, loop_result_);
 	        }
 	    }
 	    // a good match with its nerghbour
@@ -407,17 +421,17 @@ int CloudPointMap::detectLoop(KeyFrame* keyframe, int frame_index)
 	                    auto it = image_pool.find(tmp_index);
 	                    cv::Mat tmp_image = (it->second).clone();
 	                    putText(tmp_image, "loop score:" + to_string(ret[i].Score), cv::Point2f(10, 50), CV_FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255));
-	                    cv::hconcat(loop_result, tmp_image, loop_result);
+	                    cv::hconcat(loop_result_, tmp_image, loop_result_);
 	                }
 	            }
 
 	        }
 
-	    if (DEBUG_IMAGE)
-	    {
-	        cv::imshow("loop_result", loop_result);
-	        cv::waitKey(20);
-	    }
+//	    if (DEBUG_IMAGE)
+//	    {
+//	        cv::imshow("loop_result", loop_result_);
+//	        cv::waitKey(20);
+//	    }
 
 	    if (find_loop)
 	    {

@@ -117,5 +117,9 @@ public:
 	bool has_loop;
 	int loop_index;
 	Eigen::Matrix<double, 8, 1 > loop_info;
+
+	cv::Mat find_conn_1_;
+	cv::Mat find_conn_2_;
+	cv::Mat find_conn_3_;
 };
 

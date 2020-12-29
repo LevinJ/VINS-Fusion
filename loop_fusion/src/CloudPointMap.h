@@ -41,6 +41,8 @@ private:
 	void process();
 	void process_img(std::shared_ptr<ImageInfo> img_info);
 	std::string point_cloud_path_;
+	//store loop detection result
+	cv::Mat loop_result_;
 };
 
 #endif /* VINS_FUSION_LOOP_FUSION_CLOUDPOINTMAP_H_ */
