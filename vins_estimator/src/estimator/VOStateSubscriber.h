@@ -23,15 +23,15 @@ class Estimator;
 //
 //};
 
-class VoInfo{
+class VoBaseInfo{
 public:
-	VoInfo(){
+	VoBaseInfo(){
 		t_ = 0;
 	};
-	virtual ~VoInfo(){};
+	virtual ~VoBaseInfo(){};
 	double t_;
 };
-class KeyframeInfo: public VoInfo{
+class KeyframeInfo: public VoBaseInfo{
 public:
 	KeyframeInfo(){};
 	virtual ~KeyframeInfo(){};
@@ -41,7 +41,7 @@ public:
 
 };
 
-class ImageInfo: public VoInfo{
+class ImageInfo: public VoBaseInfo{
 public:
 	ImageInfo(){};
 	virtual ~ImageInfo(){};
@@ -49,7 +49,7 @@ public:
 
 };
 
-class OdomExtrinsicInfo: public VoInfo{
+class OdomExtrinsicInfo: public VoBaseInfo{
 public:
 	OdomExtrinsicInfo(){};
 	virtual ~OdomExtrinsicInfo(){};
@@ -60,7 +60,12 @@ public:
 	Eigen::Vector3d tic_;
 };
 
-
+class VOInfo{
+public:
+	std::shared_ptr<ImageInfo> im_info_ptr_;
+	std::shared_ptr<OdomExtrinsicInfo> odom_extric_info_ptr_;
+	cv::Mat img_tracking_;
+};
 
 
 class VOStateSubscriber {
@@ -108,7 +113,10 @@ public:
 	void register_sub(std::shared_ptr<VOStateSubscriber> sub_ptr){
 		subs_.push_back(sub_ptr);
 	};
+	void do_callback();
+	std::vector<std::function<void(VOInfo)>>vo_callback_subs_;
 private:
+	VOInfo vo_info_;
 	std::vector<std::shared_ptr<VOStateSubscriber>> subs_;
 };
 

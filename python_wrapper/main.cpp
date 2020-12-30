@@ -84,13 +84,26 @@ PYBIND11_MODULE(vslam, m) {
 //
 //    m.def("readParameters", &readParameters);
 
-	py::class_<OdomExtrinsicInfo>(m, "OdomExtrinsicInfo")
-					 .def(py::init<>())
-					 .def_readwrite("P_", &OdomExtrinsicInfo::P_)
-					 .def_readwrite("V_", &OdomExtrinsicInfo::V_)
-					 .def_readwrite("R_", &OdomExtrinsicInfo::R_)
-					 .def_readwrite("ric_", &OdomExtrinsicInfo::ric_)
-					 .def_readwrite("tic_", &OdomExtrinsicInfo::tic_);
+    py::class_<VoBaseInfo, std::shared_ptr<VoBaseInfo>>(m, "VoBaseInfo")
+    					 .def(py::init<>())
+    					 .def_readwrite("t_", &VoBaseInfo::t_);
+    py::class_<ImageInfo, VoBaseInfo, std::shared_ptr<ImageInfo>>(m, "ImageInfo")
+        					 .def(py::init<>())
+        					 .def_readwrite("img_", &ImageInfo::img_);
+
+    py::class_<OdomExtrinsicInfo, VoBaseInfo, std::shared_ptr<OdomExtrinsicInfo>>(m, "OdomExtrinsicInfo")
+            					 .def(py::init<>())
+            					 .def_readwrite("P_", &OdomExtrinsicInfo::P_)
+								 .def_readwrite("V_", &OdomExtrinsicInfo::V_)
+								 .def_readwrite("R_", &OdomExtrinsicInfo::R_)
+								 .def_readwrite("ric_", &OdomExtrinsicInfo::ric_)
+								 .def_readwrite("tic_", &OdomExtrinsicInfo::tic_);
+
+    py::class_<VOInfo>(m, "VOInfo")
+        					 .def(py::init<>())
+							 .def_readwrite("odom_extric_info_ptr_", &VOInfo::odom_extric_info_ptr_)
+							 .def_readwrite("img_tracking_", &VOInfo::img_tracking_)
+        					 .def_readwrite("im_info_ptr_", &VOInfo::im_info_ptr_);
 
 	py::class_<LPInfo>(m, "LPInfo")
 						 .def(py::init<>())
@@ -114,9 +127,11 @@ PYBIND11_MODULE(vslam, m) {
     m.def("inputImage_nparr", &inputImage_nparr);
     m.def("init_loop_fusion", &init_loop_fusion);
     m.def("create_map", &create_map);
+    m.def("vo_callback", &vo_callback);
     m.def("register_vo_callbacks", &register_vo_callbacks);
     m.def("init_reloc", &init_reloc);
     m.def("reloc_image_nparr", &reloc_image_nparr);
     m.def("reloc_callback", &reloc_callback);
+    m.def("set_multiple_thread", &set_multiple_thread);
 
 }

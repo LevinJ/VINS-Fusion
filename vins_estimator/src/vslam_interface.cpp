@@ -44,7 +44,9 @@ void inputImage(double t, const cv::Mat &  _img1, const cv::Mat &  _img2){
 void create_map(){
 	g_lf_ptr->create_map();
 }
-
+void vo_callback(std::function<void(VOInfo)> cb){
+	g_est_ptr->vo_state_subs_.vo_callback_subs_.push_back(cb);
+}
 void register_vo_callbacks(std::function<void(OdomExtrinsicInfo &)> odom_extric_f,
 		std::function<void(KeyframeInfo &)> key_frame_info_f, std::function<void(ImageInfo &)> img_info_f){
 	auto vo_cbs = std::make_shared<VOStateSubscriber_callback>();
@@ -70,4 +72,8 @@ void reloc_image(double _time_stamp, cv::Mat &_image){
 
 void reloc_callback(std::function<void(LPInfo)> cb){
 	g_lp_state_subscriber.lp_state_subs2.push_back(cb);
+}
+
+void set_multiple_thread(int flag){
+	MULTIPLE_THREAD = flag;
 }

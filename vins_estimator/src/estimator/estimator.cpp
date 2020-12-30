@@ -348,6 +348,7 @@ void Estimator::processMeasurements()
             pubOdometry(*this, header);
             vo_state_subs_.update_keyframe(*this);
             vo_state_subs_.update_odom_extrinsic(*this);
+            vo_state_subs_.do_callback();
 			#else
             std_msgs::Header header;
 			header.frame_id = "world";

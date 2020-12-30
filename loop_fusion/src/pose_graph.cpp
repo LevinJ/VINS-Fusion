@@ -519,11 +519,11 @@ int PoseGraph::detectLoop(KeyFrame* keyframe, int frame_index)
 
         }
 
-    if (DEBUG_IMAGE)
-    {
-        cv::imshow("loop_result", loop_result);
-        cv::waitKey(20);
-    }
+//    if (DEBUG_IMAGE)
+//    {
+//        cv::imshow("loop_result", loop_result);
+//        cv::waitKey(20);
+//    }
 
     if (find_loop && frame_index > 50)
     {

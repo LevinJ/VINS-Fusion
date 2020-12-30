@@ -21,6 +21,12 @@ void VOStateSubscribers::update_img(double t,  const cv::Mat &img){
 	for(auto &sub : subs_){
 		sub->update_img(im_info_ptr);
 	}
+	vo_info_.im_info_ptr_ = im_info_ptr;
+}
+void VOStateSubscribers::do_callback(){
+	for(auto &sub : vo_callback_subs_){
+		sub(vo_info_);
+	}
 }
 void VOStateSubscribers::update_keyframe(const Estimator &estimator){
 	// pub camera pose, 2D-3D points of keyframe
@@ -64,6 +70,7 @@ void VOStateSubscribers::update_keyframe(const Estimator &estimator){
 
 void VOStateSubscribers::update_odom_extrinsic(const Estimator &estimator){
 
+	vo_info_.img_tracking_ = estimator.featureTracker.getTrackImage();
 	if (estimator.solver_flag != Estimator::SolverFlag::NON_LINEAR){
 		return;
 	}
@@ -76,6 +83,7 @@ void VOStateSubscribers::update_odom_extrinsic(const Estimator &estimator){
 
 	info_ptr->ric_ = estimator.ric[0];
 	info_ptr->tic_ = estimator.tic[0];
+	vo_info_.odom_extric_info_ptr_ = info_ptr;
 	//send the data out
 	for(auto &sub : subs_){
 		sub->update_odom_extrinsic(info_ptr);

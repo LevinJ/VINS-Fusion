@@ -544,7 +544,7 @@ void FeatureTracker::removeOutliers(set<int> &removePtsIds)
 }
 
 
-cv::Mat FeatureTracker::getTrackImage()
+cv::Mat FeatureTracker::getTrackImage() const
 {
     return imTrack;
 }
