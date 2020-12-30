@@ -5,6 +5,7 @@
 #include <eigen3/Eigen/Geometry>
 #include <opencv2/core/eigen.hpp>
 #include <functional>
+#include <map>
 class OdomExtrinsicInfo;
 class KeyframeInfo;
 class ImageInfo;
@@ -27,4 +28,6 @@ void reloc_image(double _time_stamp, cv::Mat &_image);
 void reloc_callback(std::function<void(LPInfo)> cb);
 
 void set_multiple_thread(int flag);
+
+void inputFeature(double t, const std::map<int, std::vector<std::pair<int, Eigen::Matrix<double, 7, 1>>>> &featureFrame);
 

@@ -77,3 +77,7 @@ void reloc_callback(std::function<void(LPInfo)> cb){
 void set_multiple_thread(int flag){
 	MULTIPLE_THREAD = flag;
 }
+
+void inputFeature(double t, const std::map<int, std::vector<std::pair<int, Eigen::Matrix<double, 7, 1>>>> &featureFrame){
+	g_est_ptr->inputFeature(t, featureFrame);
+}
