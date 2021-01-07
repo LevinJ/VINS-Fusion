@@ -1,38 +1,39 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(camera_models)
 
+if(NOT BUILD_QNX)
 set(CMAKE_BUILD_TYPE "Release")
 #set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_CXX_FLAGS "-std=c++11")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -fPIC")
-
-#find_package(catkin REQUIRED COMPONENTS
-#    roscpp
-#    std_msgs
-#    )
-
 find_package(Boost REQUIRED COMPONENTS filesystem program_options system)
-include_directories(${Boost_INCLUDE_DIRS})
-
-find_package(OpenCV 3.4.6 EXACT REQUIRED)
-
-# set(EIGEN_INCLUDE_DIR "/usr/local/include/eigen3")
 find_package(Ceres REQUIRED)
-include_directories(${CERES_INCLUDE_DIRS})
+find_package(Eigen3 REQUIRED)
+find_package(OpenCV 3.4.6 EXACT REQUIRED)
+endif()
 
 
-#catkin_package(
-#    INCLUDE_DIRS include
-#    LIBRARIES camera_models
-#    CATKIN_DEPENDS roscpp std_msgs
-##    DEPENDS system_lib
-#    )
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+include_directories(${EIGEN_INCLUDE_DIR} ${Boost_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 
-#include_directories(
-#    ${catkin_INCLUDE_DIRS}
-#    )
+#message(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")
+#message(STATUS "EIGEN_INCLUDE_DIR = ${EIGEN_INCLUDE_DIR}")
+#message(STATUS "CERES_INCLUDE_DIRS = ${CERES_INCLUDE_DIRS}")
+#message(STATUS "CERES_LIBRARIES = ${CERES_LIBRARIES}")
+#message(STATUS "Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}")
+#message(STATUS "Boost_LIBRARIES = ${Boost_LIBRARIES}")
+#message(STATUS "OpenCV_INCLUDE_DIRS = ${OpenCV_INCLUDE_DIRS}")
+#message(STATUS "OpenCV_LIBRARIES = ${OpenCV_LIBRARIES}")
+
+
 
 include_directories("../include")
+
+#get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+#foreach(dir ${dirs})
+#  message(STATUS "dir='${dir}'")
+#endforeach()
+
 
 add_executable(Calibrations 
     intrinsic_calib.cc
@@ -50,7 +51,7 @@ add_executable(Calibrations
     gpl/gpl.cc
     gpl/EigenQuaternionParameterization.cc)
 
-add_library(camera_models 
+add_library(camera_models SHARED 
     chessboard/Chessboard.cc
     calib/CameraCalibration.cc
     camera_models/Camera.cc
