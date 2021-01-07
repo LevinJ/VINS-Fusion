@@ -12,8 +12,6 @@
 #include "pose_graph.h"
 #include "CloudPointMap.h"
 #include "robot_localization/GetState.h"
-#include "./utility/utility.h"
-#include "./utility/tic_toc.h"
 extern std::string POSE_GRAPH_SAVE_PATH;
 extern std::string VINS_LOOP_RESULT_PATH;
 extern int DEBUG_IMAGE;

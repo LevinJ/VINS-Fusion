@@ -18,8 +18,8 @@
 #include "camodocal/camera_models/CameraFactory.h"
 #include "camodocal/camera_models/CataCamera.h"
 #include "camodocal/camera_models/PinholeCamera.h"
-#include "utility/tic_toc.h"
-#include "utility/utility.h"
+#include "../../vins_estimator/src/utility/utility.h"
+#include "../../vins_estimator/src/utility/tic_toc.h"
 
 #ifndef WITH_ROS_SIMULATE
 #include "utility/CameraPoseVisualization.h"

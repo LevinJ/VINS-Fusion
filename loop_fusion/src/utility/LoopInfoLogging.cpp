@@ -7,7 +7,7 @@
 
 #include "LoopInfoLogging.h"
 //#include "../parameters.h"
-#include "utility.h"
+#include "../../../vins_estimator/src/utility/utility.h"
 #include <fstream>
 using namespace std;
 

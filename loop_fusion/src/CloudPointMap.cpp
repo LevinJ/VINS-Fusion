@@ -6,7 +6,6 @@
  */
 
 #include "CloudPointMap.h"
-#include "utility/utility.h"
 #include "utility/LoopInfoLogging.h"
 #include <thread>
 #include <mutex>

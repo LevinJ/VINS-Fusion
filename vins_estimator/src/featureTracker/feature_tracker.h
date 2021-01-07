@@ -14,7 +14,9 @@
 #include <cstdio>
 #include <iostream>
 #include <queue>
+#ifndef _QNX_SOURCE
 #include <execinfo.h>
+#endif
 #include <csignal>
 #include <opencv2/opencv.hpp>
 #include <eigen3/Eigen/Dense>

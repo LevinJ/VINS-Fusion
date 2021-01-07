@@ -9,7 +9,7 @@
 #define LOOP_FUSION_SRC_UTILITY_POSEINFO_H_
 
 #include <eigen3/Eigen/Dense>
-#include "utility.h"
+#include "../../../vins_estimator/src/utility/utility.h"
 
 class PoseInfo {
 public:
