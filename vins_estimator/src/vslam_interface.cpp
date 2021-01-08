@@ -1,6 +1,5 @@
 #include "vslam_interface.h"
 #include "estimator/estimator.h"
-#include "utility/visualization.h"
 #include "../../loop_fusion/src/LoopFusion.h"
 #include "../../loop_fusion/src/CloudPointMap.h"
 #include "../../loop_fusion/src/LPStateSubscriber.h"

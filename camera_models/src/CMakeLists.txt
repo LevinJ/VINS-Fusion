@@ -51,7 +51,7 @@ add_executable(Calibrations
     gpl/gpl.cc
     gpl/EigenQuaternionParameterization.cc)
 
-add_library(camera_models SHARED 
+add_library(camera_models 
     chessboard/Chessboard.cc
     calib/CameraCalibration.cc
     camera_models/Camera.cc
