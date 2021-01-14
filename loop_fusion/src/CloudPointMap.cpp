@@ -305,7 +305,7 @@ void CloudPointMap::process_img(std::shared_ptr<ImageInfo> last_img){
 	auto loop_index = detectLoop(cur_kf, cur_kf->index);
 	g_lp_state_subscriber.lp_info_.lp_detection_img_ = loop_result_;
 	g_lp_state_subscriber.lp_info_.bloop_detected_ = (loop_index != -1);
-	//	cout<<"detectloop="<<tmp_t.toc()<<endl;
+	ROS_INFO_STREAM("detectloop="<<tmp_t.toc()<<endl);
 	if (loop_index == -1){
 		g_lp_state_subscriber.do_callback();
 		return;
@@ -313,14 +313,14 @@ void CloudPointMap::process_img(std::shared_ptr<ImageInfo> last_img){
 
 	//find connections
 	KeyFrame* old_kf = getKeyFrame(loop_index);
-	cout << "loop detected, " <<cur_kf->sequence<<", "<< cur_kf->index<< "-->"<< old_kf->sequence<<", "<<old_kf->index<<endl;
+	ROS_DEBUG_STREAM( "loop detected, " <<cur_kf->sequence<<", "<< cur_kf->index<< "-->"<< old_kf->sequence<<", "<<old_kf->index<<endl);
 	tmp_t.tic();
 	bool bfindconn = old_kf->findConnection(cur_kf);
 	g_lp_state_subscriber.lp_info_.bconn_founded_ = bfindconn;
 	g_lp_state_subscriber.lp_info_.find_conn_1_ = old_kf->find_conn_1_;
 	g_lp_state_subscriber.lp_info_.find_conn_2_ = old_kf->find_conn_2_;
 	g_lp_state_subscriber.lp_info_.find_conn_3_ = old_kf->find_conn_3_;
-	//	cout<<"findConnection="<<tmp_t.toc()<<endl;
+	ROS_INFO_STREAM("findConnection="<<tmp_t.toc()<<endl);
 	if (!bfindconn){
 		g_lp_state_subscriber.do_callback();
 		return;

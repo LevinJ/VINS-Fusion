@@ -8,6 +8,7 @@
 #include "LPStateSubscriber.h"
 #include "keyframe.h"
 #include <iostream>
+#include <ros/ros.h>
 using namespace std;
 extern Eigen::Vector3d tic;
 extern Eigen::Matrix3d qic;
@@ -39,7 +40,7 @@ void LPStateSubscriber::update_loop_info(KeyFrame * cur_kf, KeyFrame * old_kf, c
 	ss<<"tic="<<tic[0]<< ","<<tic[1]<< ","<<tic[2]<< ",";
 	ss<<"ric="<<ypr[0]<< ","<<ypr[1]<< ","<<ypr[2];
 	ss<< endl;
-	cout<<ss.str();
+	ROS_DEBUG(ss.str());
 }
 
 LPStateSubscribers::LPStateSubscribers() {

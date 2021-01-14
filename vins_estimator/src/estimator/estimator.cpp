@@ -253,7 +253,7 @@ bool Estimator::getIMUInterval(double t0, double t1, vector<pair<double, Eigen::
     {
         while (accBuf.front().first <= t0)
         {
-        	printf("discard imu=%f\n", accBuf.front().first);
+        	ROS_DEBUG("discard imu=%f\n", accBuf.front().first);
             accBuf.pop();
             gyrBuf.pop();
         }
@@ -311,13 +311,13 @@ void Estimator::processMeasurements()
             if(USE_IMU){
             	getIMUInterval(prevTime, curTime, accVector, gyrVector);
             	cout.setf(ios::fixed);
-            	std::cout<<"imu size= "<<setprecision(6) << accVector.size()<<",s="<<accVector[0].first<<",e="<<accVector[accVector.size()-1].first<<std::endl;
+            	ROS_DEBUG_STREAM("imu size= "<<setprecision(6) << accVector.size()<<",s="<<accVector[0].first<<",e="<<accVector[accVector.size()-1].first<<std::endl);
             }
 
 
             featureBuf.pop();
             mBuf.unlock();
-
+            TicToc t_r;
             if(USE_IMU)
             {
                 if(!initFirstPoseFlag)
@@ -362,6 +362,7 @@ void Estimator::processMeasurements()
 			pubTF(*this, header);
 			#endif
             mProcess.unlock();
+            ROS_INFO("image process whole time %f\n", t_r.toc());
         }
 
         if (! MULTIPLE_THREAD)
@@ -1167,7 +1168,7 @@ void Estimator::optimization()
             problem.AddResidualBlock(imu_factor, NULL, para_Pose[i], para_SpeedBias[i], para_Pose[j], para_SpeedBias[j]);
             residual_sum.push_back(compute_residuals(imu_factor, NULL, para_Pose[i], para_SpeedBias[i], para_Pose[j], para_SpeedBias[j]));
         }
-        cout<<"imu_sum="<<std::accumulate(residual_sum.begin(), residual_sum.end(), 0.0)<<",list="<<print_str(residual_sum)<<endl;
+        ROS_DEBUG_STREAM("imu_sum="<<std::accumulate(residual_sum.begin(), residual_sum.end(), 0.0)<<",list="<<print_str(residual_sum)<<endl);
     }
 
     int f_m_cnt = 0;

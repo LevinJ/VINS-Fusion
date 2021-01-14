@@ -177,7 +177,7 @@ void PoseGraph::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
     {
         TicToc tmp_t;
         loop_index = detectLoop(cur_kf, cur_kf->index);
-        cout<<"detectloop="<<tmp_t.toc()<<endl;
+        ROS_INFO_STREAM("detectloop="<<tmp_t.toc()<<endl);
     }
     else
     {
@@ -187,10 +187,10 @@ void PoseGraph::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
 	{
         //printf(" %d detect loop with %d \n", cur_kf->index, loop_index);
         KeyFrame* old_kf = getKeyFrame(loop_index);
-        cout << "loop detected, " <<cur_kf->sequence<<", "<< cur_kf->index<< "-->"<< old_kf->sequence<<", "<<old_kf->index<<endl;
+        ROS_DEBUG_STREAM("loop detected, " <<cur_kf->sequence<<", "<< cur_kf->index<< "-->"<< old_kf->sequence<<", "<<old_kf->index<<endl);
         TicToc tmp_t;
         bool bfindconn = cur_kf->findConnection(old_kf);
-        cout<<"findConnection="<<tmp_t.toc()<<endl;
+        ROS_INFO_STREAM("findConnection="<<tmp_t.toc()<<endl);
         if (bfindconn)
         {
             if (earliest_loop_index > loop_index || earliest_loop_index == -1)
@@ -227,7 +227,7 @@ void PoseGraph::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
                 vio_R_cur = w_r_vio *  vio_R_cur;
                 cur_kf->updateVioPose(vio_P_cur, vio_R_cur);
                 list<KeyFrame*>::iterator it = keyframelist.begin();
-                cout<<"change seq relpose, cur_time="<<cur_kf->time_stamp<<", old_time="<<old_kf->time_stamp<<", w_t_vio="<<w_t_vio.transpose()<<endl;
+                ROS_DEBUG_STREAM("change seq relpose, cur_time="<<cur_kf->time_stamp<<", old_time="<<old_kf->time_stamp<<", w_t_vio="<<w_t_vio.transpose()<<endl);
                 for (; it != keyframelist.end(); it++)   
                 {
                     if((*it)->sequence == cur_kf->sequence)
@@ -251,7 +251,7 @@ void PoseGraph::addKeyFrame(KeyFrame* cur_kf, bool flag_detect_loop)
     Vector3d P;
     Matrix3d R;
     cur_kf->getVioPose(P, R);
-    cout<< std::setprecision(6)<<"time="<<cur_kf->time_stamp<<", w_t_vio="<<w_t_vio.transpose()<<", t_drift="<<t_drift.transpose()<<endl;
+    ROS_DEBUG_STREAM(std::setprecision(6)<<"time="<<cur_kf->time_stamp<<", w_t_vio="<<w_t_vio.transpose()<<", t_drift="<<t_drift.transpose()<<endl);
     P = r_drift * P + t_drift;
     R = r_drift * R;
     cur_kf->updatePose(P, R);

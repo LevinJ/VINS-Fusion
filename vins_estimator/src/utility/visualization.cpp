@@ -186,7 +186,7 @@ void pubOdometry(const Estimator &estimator, const std_msgs::Header &header)
         Eigen::Matrix3d Rwb(tmp_Q);
         Eigen::Vector3d ypr = Utility::R2ypr(Rwb);
         static int img_idx = 1;
-        printf("idx = %d, time: %f, t: %f %f %f, vxyz: %f %f %f, ypr: %f %f %f \n", img_idx++, header.stamp.toSec(), tmp_T.x(), tmp_T.y(), tmp_T.z(),
+        ROS_DEBUG("idx = %d, time: %f, t: %f %f %f, vxyz: %f %f %f, ypr: %f %f %f \n", img_idx++, header.stamp.toSec(), tmp_T.x(), tmp_T.y(), tmp_T.z(),
         		odometry.twist.twist.linear.x, odometry.twist.twist.linear.y, odometry.twist.twist.linear.z, ypr[0],ypr[1],ypr[2]);
     }
 }

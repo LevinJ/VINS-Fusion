@@ -305,7 +305,7 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
         }
     }
 //    cout<<ss.str()<<endl;
-    //printf("feature track whole time %f\n", t_r.toc());
+    ROS_INFO("feature track whole time %f\n", t_r.toc());
     return featureFrame;
 }
 
