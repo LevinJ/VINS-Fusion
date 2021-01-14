@@ -3,17 +3,20 @@
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
 #include <pybind11/eigen.h>
-#include "../vins_estimator/src/vslam_interface.h"
-#include "../vins_estimator/src/estimator/VOStateSubscriber.h"
-#include "../loop_fusion/src/LPStateSubscriber.h"
 #include <pybind11/numpy.h>
 #include <memory>
 #include "opencv_bind11.h"
+//#include "../../../vins_estimator/src/vslam_interface.h"
+
+#include "../../../vins_estimator/src/vslam_interface.h"
+#include "../../../vins_estimator/src/estimator/VOStateSubscriber.h"
+#include "../../../loop_fusion/src/LPStateSubscriber.h"
+
 namespace py = pybind11;
 
+
+
 extern LPStateSubscribers g_lp_state_subscriber;
-
-
 
 int add(int i, int j) {
 	std::cout<<"add func is called !!"<<std::endl;

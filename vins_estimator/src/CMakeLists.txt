@@ -55,3 +55,6 @@ add_library(vins_lib
     initial/initial_ex_rotation.cpp
     featureTracker/feature_tracker.cpp)
 target_link_libraries(vins_lib  ${OpenCV_LIBS} ${CERES_LIBRARIES})
+
+add_library(slam_lib vslam_interface.cpp)
+target_link_libraries(slam_lib vins_lib loop_fusion_lib camera_models)

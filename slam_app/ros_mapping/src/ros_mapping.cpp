@@ -17,15 +17,14 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
-#include "estimator/estimator.h"
-#include "utility/visualization.h"
+
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include <std_msgs/Int32.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/Imu.h>
-#include "../../loop_fusion/src/LoopFusion.h"
-#include "vslam_interface.h"
+
+#include "../../../vins_estimator/src/vslam_interface.h"
 
 using namespace std;
 using namespace Eigen;
@@ -56,7 +55,7 @@ cv::Mat getImageFromMsg(const sensor_msgs::ImageConstPtr &img_msg)
 
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "rosbagtest_lib");
+	ros::init(argc, argv, "ros_mapping");
 	ros::NodeHandle n("~");
 	ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
 
@@ -76,7 +75,7 @@ int main(int argc, char** argv)
 	string dataPath = sequence + "/";
 
 	init_estimator(config_file);
-	init_loop_fusion("/home/levin/workspace/ros_projects/src/VINS-Fusion/loop_fusion");
+	init_loop_fusion("/media/levin/DATADRIVE1/aiways_tools/localization_master/CtApVSlam/support_files");
 
 
 	rosbag::Bag bag;
